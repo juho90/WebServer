@@ -1,0 +1,43 @@
+# .NET 8 관련 파일 및 폴더 무시
+bin/
+obj/
+out/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# 빌드 결과물 및 임시 파일
+*.log
+*.vspscc
+*.vssscc
+*.dbmdl
+*.pdb
+*.cache
+*.mdb
+*.pidb
+*.svclog
+*.scc
+
+# Visual Studio 관련 폴더
+.vs/
+.idea/
+*.ncrunch*
+*.localhistory/
+*.DS_Store
+
+# NuGet 패키지
+*.nupkg
+*.snupkg
+packages/
+*.nuspec
+
+# 환경설정 및 비밀 정보
+appsettings.*.json
+secrets.json 
+
+# 기타
+*.tmp
+*.bak
+*.swp
+*.orig
