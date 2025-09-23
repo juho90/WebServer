@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "테스트",
+    "Projects": [
+      {
+        "Path": "WebServer\\WebServer.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "TestClient\\TestClient.csproj",
+        "Action": "Start",
+        "DebugTarget": "TestClient"
+      }
+    ]
+  }
+]
