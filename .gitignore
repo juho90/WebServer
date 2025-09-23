@@ -35,6 +35,7 @@ packages/
 # 환경설정 및 비밀 정보
 appsettings.*.json
 secrets.json 
+!appsettings.Example.json
 
 # 기타
 *.tmp
