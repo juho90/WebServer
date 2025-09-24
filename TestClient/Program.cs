@@ -4,7 +4,7 @@ using System.Text.Json;
 
 Console.WriteLine("Hello, World!");
 
-var apiUrl = "https://localhost:28080";
+var apiUrl = "http://localhost:28080";
 var username = "testuser";
 
 using var httpClient = new HttpClient();
@@ -47,7 +47,7 @@ var token = responseJson.GetProperty("accessToken").GetString();
 
 Console.WriteLine($"발급받은 토큰: {token}");
 
-var socketUri = new Uri("wss://localhost:28080/ws");
+var socketUri = new Uri("ws://localhost:28080/ws");
 
 using var client = new ClientWebSocket();
 client.Options.SetRequestHeader("Sec-WebSocket-Protocol", token);

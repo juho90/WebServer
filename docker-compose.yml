@@ -1,0 +1,11 @@
+services:
+  webserver:
+    build:
+      context: .
+      dockerfile: WebServer/Dockerfile
+    ports:
+      - "28080:28080"
+      - "28081:28081"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+  
