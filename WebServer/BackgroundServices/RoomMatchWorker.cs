@@ -22,7 +22,7 @@ namespace WebServer.BackgroundServices
                             var room = await matcher.TryMatchAsync(region, capacity, ct);
                             if (room.HasValue)
                             {
-                                log.LogInformation("matched {cap}p in {region} => {room}", capacity, region, room);
+                                log.LogInformation("matched {capacity}p in {region} => {room}", capacity, region, room);
                             }
                         }
                     }

@@ -21,10 +21,10 @@ namespace WebServer.Controllers
         [HttpGet("me")]
         public IActionResult GetUsername()
         {
-            var username = User.Identity?.Name;
+            var uid = User.Identity?.Name;
             return Ok(new
             {
-                username
+                uid
             });
         }
 

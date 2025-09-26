@@ -5,7 +5,7 @@ using System.Text.Json;
 Console.WriteLine("Hello, World!");
 
 var apiUrl = "http://localhost:28080";
-var username = "testuser";
+var uid = "testuser";
 
 using var httpClient = new HttpClient();
 var maxWaitSeconds = 30;
@@ -35,7 +35,7 @@ if (!serverReady)
     return;
 }
 
-var loginPayload = new { Username = username };
+var loginPayload = new { UID = uid };
 var content = new StringContent(JsonSerializer.Serialize(loginPayload), Encoding.UTF8, "application/json");
 
 Console.WriteLine("JWT 토큰 발급 요청...");

@@ -27,7 +27,7 @@ namespace WebServer.Services
                 {
                     uids[index] = window[index].Element!;
                     mmrs[index] = (int)window[index].Score;
-                    var uid = Guid.Parse((string)uids[index]!);
+                    var uid = (string)uids[index]!;
                     var userMata = RoomMatchKeys.UserMeta(uid);
                     var w = await redis.HashGetAsync(userMata, "enqueuedAt");
                     if (w.HasValue)
@@ -88,17 +88,17 @@ namespace WebServer.Services
 
     public class RoomMatchKeys
     {
-        public static string Queue(string region, int cap)
+        public static string Queue(string region, int capacity)
         {
-            return $"match:q:{region}:{cap}";
+            return $"match:q:{region}:{capacity}";
         }
 
-        public static string UserMeta(Guid uid)
+        public static string UserMeta(string uid)
         {
             return $"match:u:{uid}";
         }
 
-        public static string Ticket(Guid uid)
+        public static string Ticket(string uid)
         {
             return $"match:t:{uid}";
         }

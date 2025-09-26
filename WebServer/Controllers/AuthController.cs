@@ -14,11 +14,11 @@ namespace WebServer.Controllers
         [AllowAnonymous]
         public IActionResult Login([FromBody] LoginRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.Username))
+            if (string.IsNullOrWhiteSpace(request.UID))
             {
-                return BadRequest("Username은 필수입니다.");
+                return BadRequest("UID은 필수입니다.");
             }
-            var token = jwtService.CreateToken(request.Username);
+            var token = jwtService.CreateToken(request.UID);
             return Ok(new
             {
                 accessToken = token
@@ -28,6 +28,6 @@ namespace WebServer.Controllers
 
     public class LoginRequest
     {
-        public string Username { get; set; } = string.Empty;
+        public string UID { get; set; } = string.Empty;
     }
 }
