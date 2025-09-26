@@ -8,13 +8,13 @@ namespace WebServer.Controllers
     [ApiController]
     [Route("api/match")]
     [Authorize]
-    public class MatchController(IDatabase redis, RoomMatchConfig config) : ControllerBase
+    public class MatchController(IConnectionMultiplexer cm, RoomMatchConfig config) : ControllerBase
     {
-        private readonly IDatabase redis = redis;
+        private readonly IDatabase redis = cm.GetDatabase();
         private readonly RoomMatchConfig config = config;
 
         [HttpPost("enter")]
-        public async Task<IActionResult> Enter([FromQuery] string region, [FromQuery] int mmr, [FromQuery] int capacity)
+        public async Task<IActionResult> Enter([FromQuery] string region, [FromQuery] int capacity, [FromQuery] int mmr)
         {
             if (config.Regions.Contains(region) is false)
             {
@@ -62,7 +62,7 @@ namespace WebServer.Controllers
             var ticket = await redis.StringGetAsync(RoomMatchKeys.Ticket(uid));
             return Ok(new
             {
-                roomId = ticket
+                roomId = (string?)ticket
             });
         }
     }

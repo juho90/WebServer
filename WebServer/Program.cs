@@ -39,7 +39,7 @@ builder.Services.AddSwaggerGen(configuration =>
     });
 });
 
-builder.Services.Configure<WebServer.Services.JwtSettings>(builder.Configuration.GetSection("Jwt"));
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
