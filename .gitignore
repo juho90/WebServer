@@ -42,3 +42,6 @@ secrets.json
 *.bak
 *.swp
 *.orig
+
+# volume 파일
+redis-data/

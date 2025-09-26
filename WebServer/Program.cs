@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 using System.Text;
+using WebServer.BackgroundServices;
+using WebServer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,8 +58,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
-builder.Services.AddSingleton<WebServer.Services.JwtService>()
-    .AddSingleton<WebServer.Services.JwtValidator>();
+// redis
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+    var config = ConfigurationOptions.Parse(connectionString);
+    return ConnectionMultiplexer.Connect(config);
+});
+
+// jwt
+builder.Services.AddSingleton<JwtService>()
+    .AddSingleton<JwtValidator>();
+
+// room match
+builder.Services.AddSingleton(sp =>
+{
+    var cfg = new RoomMatchConfig();
+    builder.Configuration.GetSection("RoomMatch").Bind(cfg);
+    return cfg;
+});
+builder.Services.AddHostedService<RoomMatchWorker>()
+    .AddSingleton<RoomMatcher>();
 
 var app = builder.Build();
 
