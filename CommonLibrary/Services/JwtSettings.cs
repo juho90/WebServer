@@ -1,4 +1,4 @@
-﻿namespace WebServer.Services
+﻿namespace CommonLibrary.Services
 {
     public class JwtSettings
     {

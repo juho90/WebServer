@@ -4,26 +4,28 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 28080
-EXPOSE 28081
+EXPOSE 29090
+EXPOSE 29091
 
 # 이 스테이지는 서비스 프로젝트를 빌드하는 데 사용됩니다.
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["WebServer/WebServer.csproj", "WebServer/"]
-RUN dotnet restore "./WebServer/WebServer.csproj"
+COPY ["BlazorApp/BlazorApp/BlazorApp.csproj", "BlazorApp/BlazorApp/"]
+COPY ["BlazorApp/BlazorApp.Client/BlazorApp.Client.csproj", "BlazorApp/BlazorApp.Client/"]
+COPY ["CommonLibrary/CommonLibrary.csproj", "CommonLibrary/"]
+RUN dotnet restore "./BlazorApp/BlazorApp/BlazorApp.csproj"
 COPY . .
-WORKDIR "/src/WebServer"
-RUN dotnet build "./WebServer.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/BlazorApp/BlazorApp"
+RUN dotnet build "./BlazorApp.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # 이 스테이지는 최종 스테이지에 복사할 서비스 프로젝트를 게시하는 데 사용됩니다.
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./WebServer.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./BlazorApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # 이 스테이지는 프로덕션에서 사용되거나 VS에서 일반 모드로 실행할 때 사용됩니다(디버그 구성을 사용하지 않는 경우 기본값).
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "WebServer.dll"]
+ENTRYPOINT ["dotnet", "BlazorApp.dll"]

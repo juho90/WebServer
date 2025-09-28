@@ -1,4 +1,4 @@
-﻿namespace WebServer.Services
+﻿namespace GameServer.Services
 {
     public static class RoomMatcherLua
     {

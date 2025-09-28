@@ -1,11 +1,12 @@
-﻿using WebServer.Services;
+﻿using CommonLibrary.Services;
+using GameServer.Services;
 
 namespace WebServer.BackgroundServices
 {
-    public class RoomMatchWorker(RoomMatcher matcher, RoomMatchConfig config, ILogger<RoomMatchWorker> log) : BackgroundService
+    public class RoomMatchWorker(RoomMatcher matcher, RoomMatchSettings settings, ILogger<RoomMatchWorker> log) : BackgroundService
     {
         private readonly RoomMatcher matcher = matcher;
-        private readonly RoomMatchConfig config = config;
+        private readonly RoomMatchSettings settings = settings;
         private readonly ILogger<RoomMatchWorker> log = log;
 
         protected override async Task ExecuteAsync(CancellationToken ct)
@@ -15,9 +16,9 @@ namespace WebServer.BackgroundServices
             {
                 try
                 {
-                    foreach (var region in config.Regions)
+                    foreach (var region in settings.Regions)
                     {
-                        foreach (var capacity in config.Capacities)
+                        foreach (var capacity in settings.Capacities)
                         {
                             var room = await matcher.TryMatchAsync(region, capacity, ct);
                             if (room.HasValue)
@@ -26,7 +27,7 @@ namespace WebServer.BackgroundServices
                             }
                         }
                     }
-                    await Task.Delay(config.LoopIntervalMs, ct);
+                    await Task.Delay(settings.LoopIntervalMs, ct);
                 }
                 catch (OperationCanceledException)
                 {

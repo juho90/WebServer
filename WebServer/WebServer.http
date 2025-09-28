@@ -1,6 +1,0 @@
-﻿@WebServer_HostAddress = http://localhost:28080
-
-GET {{WebServer_HostAddress}}/health
-Accept: application/json
-
-###

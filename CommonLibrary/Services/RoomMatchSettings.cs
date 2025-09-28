@@ -1,4 +1,4 @@
-﻿namespace BlazorApp.Services
+﻿namespace CommonLibrary.Services
 {
     public class RoomMatchSettings
     {

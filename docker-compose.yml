@@ -1,11 +1,21 @@
 services:
-  webserver:
+  blazorapp:
     build:
       context: .
-      dockerfile: WebServer/Dockerfile
+      dockerfile: BlazorApp/BlazorApp/Dockerfile
     ports:
-      - "28080:28080"
-      - "28081:28081"
+      - "29090:29090"
+      - "29091:29091"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+
+  gameserver:
+    build:
+      context: .
+      dockerfile: GameServer/Dockerfile
+    ports:
+      - "25050:25050"
+      - "25051:25051"
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
 

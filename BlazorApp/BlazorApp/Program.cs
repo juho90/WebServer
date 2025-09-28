@@ -1,10 +1,8 @@
 ﻿using BlazorApp.Components;
-using BlazorApp.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using CommonLibrary.Extensions;
+using CommonLibrary.Services;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,23 +37,7 @@ builder.Services.AddSwaggerGen(configuration =>
     });
 });
 
-builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        var configuration = builder.Configuration;
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = configuration["Jwt:Issuer"],
-            ValidAudience = configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!)),
-            ClockSkew = TimeSpan.Zero
-        };
-    });
+builder.Services.AddJwt(builder.Configuration);
 builder.Services.AddAuthorization();
 
 // redis

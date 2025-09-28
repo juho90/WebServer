@@ -1,16 +1,17 @@
-﻿using StackExchange.Redis;
+﻿using CommonLibrary.Services;
+using StackExchange.Redis;
 
-namespace WebServer.Services
+namespace GameServer.Services
 {
-    public class RoomMatcher(IConnectionMultiplexer mux, RoomMatchConfig config)
+    public class RoomMatcher(IConnectionMultiplexer mux, RoomMatchSettings settings)
     {
         private readonly IDatabase redis = mux.GetDatabase();
-        private readonly RoomMatchConfig config = config;
+        private readonly RoomMatchSettings settings = settings;
 
         public async Task<Guid?> TryMatchAsync(string region, int capacity, CancellationToken ct = default)
         {
             var matchQueue = RoomMatchKeys.Queue(region, capacity);
-            var queueEntries = await redis.SortedSetRangeByRankWithScoresAsync(matchQueue, 0, config.UserPool - 1, Order.Ascending);
+            var queueEntries = await redis.SortedSetRangeByRankWithScoresAsync(matchQueue, 0, settings.UserPool - 1, Order.Ascending);
             if (queueEntries.Length < capacity)
             {
                 return null;
@@ -43,7 +44,7 @@ namespace WebServer.Services
                         minWait = Math.Min(minWait, 0);
                     }
                 }
-                var delta = config.BaseMMR + ((int)(minWait / 1000 / 5) * config.MMRPer5Sec);
+                var delta = settings.BaseMMR + ((int)(minWait / 1000 / 5) * settings.MMRPer5Sec);
                 var roomId = Guid.NewGuid();
                 var keys = new RedisKey[]
                 {
@@ -56,7 +57,7 @@ namespace WebServer.Services
                     roomId.ToString(),
                     now,
                     delta,
-                    config.TicketTtlMs,
+                    settings.TicketTtlMs,
                     capacity
                 };
                 for (var index = 0; index < capacity; index++)
@@ -73,41 +74,5 @@ namespace WebServer.Services
             }
             return null;
         }
-    }
-
-    public class RoomMatchConfig
-    {
-        public string[] Regions { get; set; } = ["kr"];
-        public int[] Capacities { get; set; } = [4];
-        public int UserPool { get; set; } = 256;
-        public int TicketTtlMs { get; set; } = 180_000;
-        public int BaseMMR { get; set; } = 300;
-        public int MMRPer5Sec { get; set; } = 50;
-        public int LoopIntervalMs { get; set; } = 300;
-    }
-
-    public class RoomMatchKeys
-    {
-        public static string Queue(string region, int capacity)
-        {
-            return $"match:q:{region}:{capacity}";
-        }
-
-        public static string UserMeta(string uid)
-        {
-            return $"match:u:{uid}";
-        }
-
-        public static string Ticket(string uid)
-        {
-            return $"match:t:{uid}";
-        }
-
-        public static string RoomMembers(Guid room)
-        {
-            return $"room:{room}:members";
-        }
-
-        public const string Events = "match:events";
     }
 }

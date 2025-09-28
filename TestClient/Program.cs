@@ -6,7 +6,7 @@ using TestClient.Commands;
 
 Console.WriteLine("Hello, World!");
 
-var apiUrl = "http://localhost:28080";
+var apiUrl = "http://localhost:29090";
 var uid = "testuser";
 
 using var httpClient = new HttpClient { BaseAddress = new Uri(apiUrl) };
@@ -51,10 +51,13 @@ var token = resJson.GetProperty("accessToken").GetString();
 
 Console.WriteLine($"발급받은 토큰: {token}");
 
-var socketUri = new Uri("ws://localhost:28080/ws");
+var wsUrl = "ws://localhost:25050/ws";
+
+var socketUri = new Uri(wsUrl);
+Console.WriteLine($"WS = {socketUri.AbsoluteUri}");
 
 using var client = new ClientWebSocket();
-client.Options.SetRequestHeader("Sec-WebSocket-Protocol", token);
+client.Options.AddSubProtocol(token!);
 
 Console.WriteLine("WebSocket 연결 시도...");
 await client.ConnectAsync(socketUri, CancellationToken.None);
