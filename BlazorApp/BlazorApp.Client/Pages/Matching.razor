@@ -1,0 +1,57 @@
+﻿@page "/matching"
+@using System.Net.Http.Headers
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IHttpClientFactory ClientFactory
+
+<h3>Matching</h3>
+
+@if (RoomId is null)
+{
+    <button @onclick="Enqueue">매칭 시작</button>
+}
+else
+{
+    <div>매칭 완료! 방 ID: @RoomId</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+    private string? RoomId;
+    private bool IsEnqueued;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetAsync("api/match/ticket");
+        if (response.IsSuccessStatusCode)
+        {
+            var json = await response.Content.ReadFromJsonAsync<TicketResponse>();
+            RoomId = json?.RoomId;
+        }
+    }
+
+    async Task Enqueue()
+    {
+        var region = "kr";
+        var capacity = 4;
+        var mmr = 1000;
+        var response = await Http.PostAsync($"api/match/enter?region={region}&capacity={capacity}&mmr={mmr}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            var json = await response.Content.ReadFromJsonAsync<EnqueueResponse>();
+            IsEnqueued = json?.Enqueued ?? false;
+            await OnInitializedAsync();
+            StateHasChanged();
+        }
+    }
+
+    class TicketResponse
+    {
+        public string? RoomId { get; set; }
+    }
+
+    class EnqueueResponse
+    {
+        public bool Enqueued { get; set; }
+    }
+}

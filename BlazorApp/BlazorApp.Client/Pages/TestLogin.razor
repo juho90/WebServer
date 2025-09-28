@@ -1,4 +1,7 @@
 ﻿@page "/test-login"
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IHttpClientFactory ClientFactory
 
 <h3>TestLogin</h3>
 
@@ -13,7 +16,8 @@
     <p>@Result</p>
 }
 
-@code { 
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
     private string UID = string.Empty;
     private string Result = string.Empty;
 
@@ -26,8 +30,13 @@
         }
         try
         {
-            var http = new HttpClient { BaseAddress = new Uri(NavigationManager.BaseUri) };
-            var response = await http.PostAsJsonAsync("/api/auth/test-login", new { uid = UID });
+            var response = await Http.PostAsJsonAsync("/api/auth/test-login", new { uid = UID });
+            var json = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            var accessToken = json?.AccessToken;
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "accessToken", accessToken);
+            }
             if (response.IsSuccessStatusCode)
             {
                 Result = "Login successful!";
@@ -41,7 +50,11 @@
         {
             Result = $"Error: {ex.Message}";
         }
+        NavigationManager.NavigateTo("/matching");
     }
 
-    [Inject] NavigationManager NavigationManager { get; set; } = default!;
+    class LoginResponse
+    {
+        public string? AccessToken { get; set; }
+    }
 }
