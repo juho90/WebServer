@@ -1,13 +1,18 @@
 ﻿using CommonLibrary.Extensions;
 using CommonLibrary.Services;
 using GameServer.Services;
+using WebServer.BackgroundServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddGrpc();
 builder.Services.AddJwt(builder.Configuration);
+builder.Services.AddRedis(builder.Configuration);
+builder.Services.BindRoomMatchSettings(builder.Configuration);
 builder.Services.AddSingleton<JwtValidator>();
+builder.Services.AddHostedService<RoomMatchWorker>();
+builder.Services.AddSingleton<RoomMatcher>();
 
 var app = builder.Build();
 

@@ -3,11 +3,6 @@
     "Name": "테스트",
     "Projects": [
       {
-        "Path": "WebServer\\WebServer.csproj",
-        "Action": "Start",
-        "DebugTarget": "http"
-      },
-      {
         "Path": "TestClient\\TestClient.csproj",
         "Action": "Start",
         "DebugTarget": "TestClient"

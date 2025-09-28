@@ -2,7 +2,6 @@
 using CommonLibrary.Extensions;
 using CommonLibrary.Services;
 using Microsoft.OpenApi.Models;
-using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,15 +37,9 @@ builder.Services.AddSwaggerGen(configuration =>
 });
 
 builder.Services.AddJwt(builder.Configuration);
+builder.Services.AddRedis(builder.Configuration);
+builder.Services.BindRoomMatchSettings(builder.Configuration);
 builder.Services.AddAuthorization();
-
-// redis
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
-    var config = ConfigurationOptions.Parse(connectionString);
-    return ConnectionMultiplexer.Connect(config);
-});
 
 // jwt
 builder.Services.AddSingleton<JwtService>()
