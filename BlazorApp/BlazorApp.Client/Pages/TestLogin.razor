@@ -1,0 +1,47 @@
+﻿@page "/test-login"
+
+<h3>TestLogin</h3>
+
+<div>
+    <label for="uid">UID:</label>
+    <input id="uid" @bind="UID" />
+    <button @onclick="LoginAsync">Login</button>
+</div>
+
+@if (!string.IsNullOrEmpty(Result))
+{
+    <p>@Result</p>
+}
+
+@code { 
+    private string UID = string.Empty;
+    private string Result = string.Empty;
+
+    private async Task LoginAsync()
+    {
+        if (string.IsNullOrWhiteSpace(UID))
+        {
+            Result = "UID is required.";
+            return;
+        }
+        try
+        {
+            var http = new HttpClient { BaseAddress = new Uri(NavigationManager.BaseUri) };
+            var response = await http.PostAsJsonAsync("/api/auth/test-login", new { uid = UID });
+            if (response.IsSuccessStatusCode)
+            {
+                Result = "Login successful!";
+            }
+            else
+            {
+                Result = "Login failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Result = $"Error: {ex.Message}";
+        }
+    }
+
+    [Inject] NavigationManager NavigationManager { get; set; } = default!;
+}
