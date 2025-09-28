@@ -100,7 +100,7 @@ app.Map("/ws", async context =>
         await context.Response.WriteAsync("JWT 토큰이 필요합니다.");
         return;
     }
-    var jwtValidator = context.RequestServices.GetRequiredService<WebServer.Services.JwtValidator>();
+    var jwtValidator = context.RequestServices.GetRequiredService<JwtValidator>();
     try
     {
         var principal = jwtValidator.Validate(token);

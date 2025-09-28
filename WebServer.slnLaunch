@@ -5,12 +5,22 @@
       {
         "Path": "WebServer\\WebServer.csproj",
         "Action": "Start",
-        "DebugTarget": "https"
+        "DebugTarget": "http"
       },
       {
         "Path": "TestClient\\TestClient.csproj",
         "Action": "Start",
         "DebugTarget": "TestClient"
+      },
+      {
+        "Path": "GameServer\\GameServer.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "BlazorApp\\BlazorApp\\BlazorApp.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
       }
     ]
   }
