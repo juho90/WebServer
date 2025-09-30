@@ -1,68 +1,67 @@
-﻿using CommonLibrary.Services;
+﻿using BlazorApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StackExchange.Redis;
 
 namespace BlazorApp.Controllers
 {
     [ApiController]
     [Route("api/match")]
     [Authorize]
-    public class MatchController(IConnectionMultiplexer cm, RoomMatchSettings settings) : ControllerBase
+    public class MatchController(MatchService matchService) : ControllerBase
     {
-        private readonly IDatabase redis = cm.GetDatabase();
-        private readonly RoomMatchSettings settings = settings;
+        private readonly MatchService matchService = matchService;
 
-        [HttpPost("enter")]
-        public async Task<IActionResult> Enter([FromQuery] string region, [FromQuery] int capacity, [FromQuery] int mmr)
+        [HttpPost("matching")]
+        public async Task<IActionResult> Matching([FromQuery] string region, [FromQuery] int capacity, [FromQuery] int mmr)
         {
-            if (settings.Regions.Contains(region) is false)
-            {
-                return BadRequest(new
-                {
-                    error = "지원하지 않는 region입니다."
-                });
-            }
-            if (settings.Capacities.Contains(capacity) is false)
-            {
-                return BadRequest(new
-                {
-                    error = "지원하지 않는 capacity입니다."
-                });
-            }
             var uid = User.Identity?.Name!;
-            var ticket = await redis.StringGetAsync(RoomMatchKeys.Ticket(uid));
-            if (ticket.HasValue)
+            try
+            {
+                await matchService.Enqueue(uid, region, capacity, mmr);
+                return Ok(new
+                {
+                    enqueued = true
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("matching-status")]
+        public async Task<IActionResult> MatchingStatus()
+        {
+            var uid = User.Identity?.Name!;
+            (var isMatching, var enqueuedAt) = await matchService.IsMatching(uid);
+            if (isMatching)
             {
                 return Ok(new
                 {
-                    roomId = ticket
+                    isMatching,
+                    enqueuedAt
                 });
             }
-            var tran = redis.CreateTransaction();
-            _ = tran.SortedSetAddAsync(RoomMatchKeys.Queue(region, capacity), uid, mmr);
-            _ = tran.HashSetAsync(RoomMatchKeys.UserMeta(uid),
-            [
-                new("mmr", mmr),
-                new("region", region),
-                new("capacity", capacity),
-                new("enqueuedAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
-            ]);
-            var ok = await tran.ExecuteAsync();
-            return Ok(new
+            else
             {
-                enqueued = ok
-            });
+                return Ok(new
+                {
+                    isMatching = false
+                });
+            }
         }
 
-        [HttpGet("ticket")]
-        public async Task<IActionResult> Ticket()
+        [HttpGet("room-id")]
+        public async Task<IActionResult> GetRoomId()
         {
             var uid = User.Identity?.Name!;
-            var ticket = await redis.StringGetAsync(RoomMatchKeys.Ticket(uid));
+            var roomId = await matchService.GetRoomId(uid);
             return Ok(new
             {
-                roomId = (string?)ticket
+                roomId
             });
         }
     }

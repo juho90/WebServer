@@ -7,14 +7,14 @@
             return $"match:q:{region}:{capacity}";
         }
 
+        public static string Room(string uid)
+        {
+            return $"match:r:{uid}";
+        }
+
         public static string UserMeta(string uid)
         {
             return $"match:u:{uid}";
-        }
-
-        public static string Ticket(string uid)
-        {
-            return $"match:t:{uid}";
         }
 
         public static string RoomMembers(Guid room)

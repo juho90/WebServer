@@ -1,0 +1,82 @@
+﻿@page "/match"
+@using System.Net.Http.Headers
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IHttpClientFactory ClientFactory
+
+<h3>Match</h3>
+
+@if (RoomId is null)
+{
+    <button @onclick="Matching">매칭 시작</button>
+}
+else
+{
+    <div>매칭 완료! 방 ID: @RoomId</div>
+}
+
+@code {
+    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
+    private string? RoomId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var roomIdResponse = await Http.GetAsync("api/match/room-id");
+        if (roomIdResponse.IsSuccessStatusCode)
+        {
+            var json = await roomIdResponse.Content.ReadFromJsonAsync<RoomIdResponse>();
+            RoomId = json?.RoomId;
+            if (!string.IsNullOrEmpty(RoomId))
+            {
+                NavigationManager.NavigateTo($"/room");
+                return;
+            }
+        }
+        var statusResponse = await Http.GetAsync("api/match/matching-status");
+        if (statusResponse.IsSuccessStatusCode)
+        {
+            var json = await statusResponse.Content.ReadFromJsonAsync<MatchingStatusResponse>();
+            var isMatching = json?.isMatching is true;
+            if (isMatching is true)
+            {
+                if (json?.EnqueuedAt is long enqueuedAtUnix)
+                {
+                    NavigationManager.NavigateTo($"/room");
+                    return;
+                }
+            }
+        }
+    }
+
+    async Task Matching()
+    {
+        var region = "kr";
+        var capacity = 4;
+        var mmr = 1000;
+        var response = await Http.PostAsync($"api/match/matching?region={region}&capacity={capacity}&mmr={mmr}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            var json = await response.Content.ReadFromJsonAsync<MatchingResponse>();
+            if (json?.Enqueued is true)
+            {
+                await OnInitializedAsync();
+            }
+        }
+    }
+
+    class RoomIdResponse
+    {
+        public string? RoomId { get; set; }
+    }
+
+    class MatchingStatusResponse
+    {
+        public bool isMatching { get; set; }
+        public long EnqueuedAt { get; set; }
+    }
+
+    class MatchingResponse
+    {
+        public bool Enqueued { get; set; }
+    }
+}
