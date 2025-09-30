@@ -1,0 +1,7 @@
+﻿namespace Room;
+
+table RoomEnter {
+  room_id:string;
+}
+
+root_type RoomEnter;

@@ -1,9 +1,8 @@
-﻿using CommonLibrary.Services;
-using StackExchange.Redis;
+﻿using StackExchange.Redis;
 
-namespace BlazorApp.Services
+namespace CommonLibrary.Services
 {
-    public class MatchService(IConnectionMultiplexer cm, RoomMatchSettings settings)
+    public class RoomMatchService(IConnectionMultiplexer cm, RoomMatchSettings settings)
     {
         private readonly IDatabase redis = cm.GetDatabase();
         private readonly RoomMatchSettings settings = settings;

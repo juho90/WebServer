@@ -28,7 +28,7 @@ namespace CommonLibrary.Services
             };
         }
 
-        public ClaimsPrincipal? Validate(string token)
+        public ClaimsPrincipal Validate(string token)
         {
             var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
             return principal;

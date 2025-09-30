@@ -1,4 +1,5 @@
-﻿using System.Net.WebSockets;
+﻿using Flatbuffers;
+using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using TestClient;
@@ -63,14 +64,14 @@ Console.WriteLine("WebSocket 연결 시도...");
 await client.ConnectAsync(socketUri, CancellationToken.None);
 Console.WriteLine("연결 성공!");
 
-var sendBuffer = Encoding.UTF8.GetBytes("Hello, WebSocket!");
-await client.SendAsync(new ArraySegment<byte>(sendBuffer), WebSocketMessageType.Text, true, CancellationToken.None);
+var sendBuffer = FlatBufferUtil.SerializeEchoMessage("Hello WebSocket!");
+await client.SendAsync(new ArraySegment<byte>(sendBuffer), WebSocketMessageType.Binary, true, CancellationToken.None);
 Console.WriteLine("메시지 전송: Hello WebSocket!");
 
 var receiveBuffer = new byte[1024];
 var result = await client.ReceiveAsync(new ArraySegment<byte>(receiveBuffer), CancellationToken.None);
-var receivedText = Encoding.UTF8.GetString(receiveBuffer, 0, result.Count);
-Console.WriteLine($"서버 응답: {receivedText}");
+var echoMessage = FlatBufferUtil.DeserializeEchoMessage(receiveBuffer);
+Console.WriteLine($"서버 응답: {echoMessage.Message}");
 
 await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "테스트 종료", CancellationToken.None);
 Console.WriteLine("연결 종료");

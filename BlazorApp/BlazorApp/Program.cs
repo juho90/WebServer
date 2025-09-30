@@ -1,5 +1,4 @@
 ﻿using BlazorApp.Components;
-using BlazorApp.Services;
 using CommonLibrary.Extensions;
 using CommonLibrary.Services;
 using Microsoft.OpenApi.Models;
@@ -44,7 +43,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddSingleton<JwtService>()
     .AddSingleton<JwtValidator>()
-    .AddScoped<MatchService>();
+    .AddScoped<RoomMatchService>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

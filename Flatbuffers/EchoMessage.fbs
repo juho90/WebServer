@@ -1,0 +1,7 @@
+﻿namespace Echo;
+
+table EchoMessage {
+  message:string;
+}
+
+root_type EchoMessage;

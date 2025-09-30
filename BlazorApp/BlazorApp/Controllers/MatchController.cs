@@ -1,4 +1,4 @@
-﻿using BlazorApp.Services;
+﻿using CommonLibrary.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,9 +7,9 @@ namespace BlazorApp.Controllers
     [ApiController]
     [Route("api/match")]
     [Authorize]
-    public class MatchController(MatchService matchService) : ControllerBase
+    public class MatchController(RoomMatchService roomMatchService) : ControllerBase
     {
-        private readonly MatchService matchService = matchService;
+        private readonly RoomMatchService roomMatchService = roomMatchService;
 
         [HttpPost("matching")]
         public async Task<IActionResult> Matching([FromQuery] string region, [FromQuery] int capacity, [FromQuery] int mmr)
@@ -17,7 +17,7 @@ namespace BlazorApp.Controllers
             var uid = User.Identity?.Name!;
             try
             {
-                await matchService.Enqueue(uid, region, capacity, mmr);
+                await roomMatchService.Enqueue(uid, region, capacity, mmr);
                 return Ok(new
                 {
                     enqueued = true
@@ -36,7 +36,7 @@ namespace BlazorApp.Controllers
         public async Task<IActionResult> MatchingStatus()
         {
             var uid = User.Identity?.Name!;
-            (var isMatching, var enqueuedAt) = await matchService.IsMatching(uid);
+            (var isMatching, var enqueuedAt) = await roomMatchService.IsMatching(uid);
             if (isMatching)
             {
                 return Ok(new
@@ -58,7 +58,7 @@ namespace BlazorApp.Controllers
         public async Task<IActionResult> GetRoomId()
         {
             var uid = User.Identity?.Name!;
-            var roomId = await matchService.GetRoomId(uid);
+            var roomId = await roomMatchService.GetRoomId(uid);
             return Ok(new
             {
                 roomId
