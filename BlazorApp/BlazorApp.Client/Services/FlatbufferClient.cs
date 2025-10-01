@@ -1,5 +1,6 @@
 ﻿using Flatbuffers;
 using Microsoft.JSInterop;
+using System.Threading.Channels;
 
 namespace BlazorApp.Client.Services
 {
@@ -7,7 +8,7 @@ namespace BlazorApp.Client.Services
     {
         private readonly WebSocketClient webSocketClient;
         private readonly IJSRuntime jSRuntime;
-        private readonly Queue<byte[]> messageQueue = new Queue<byte[]>();
+        private readonly Channel<byte[]> messageQueue = Channel.CreateUnbounded<byte[]>();
 
         public FlatbufferClient(WebSocketClient webSocketClient, IJSRuntime jSRuntime)
         {
@@ -18,23 +19,17 @@ namespace BlazorApp.Client.Services
 
         private void OnReceive(byte[] data)
         {
-            messageQueue.Enqueue(data);
-        }
-
-        public bool Receive(out byte[]? data)
-        {
-            if (messageQueue.Count > 0)
-            {
-                data = messageQueue.Dequeue();
-                return true;
-            }
-            data = null;
-            return false;
+            messageQueue.Writer.TryWrite(data);
         }
 
         public async Task ConnectAsync(string url)
         {
             await webSocketClient.ConnectAsync(url);
+        }
+
+        public async Task<byte[]> ReceiveAsync(CancellationToken cancellationToken)
+        {
+            return await messageQueue.Reader.ReadAsync(cancellationToken);
         }
 
         public async Task SendAuthenticationAsync()

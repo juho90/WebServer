@@ -1,22 +1,106 @@
 ﻿@page "/wait-room"
 @using BlazorApp.Client.Services
+@using Flatbuffers
 @using Microsoft.AspNetCore.Components.WebAssembly.Hosting
+@using System.Text.Json
 @inject IWebAssemblyHostEnvironment HostEnvironment
+@inject NavigationManager NavigationManager
 @inject FlatbufferClient FlatbufferClient
 
-<h3>WaitRoom</h3>
+<PageTitle>Wait...</PageTitle>
 
+<h3>WaitRoom</h3>
 @if (HostEnvironment.Environment == "Development")
 {
-    <p>@recievedMessage</p>
+    <p>@roomId</p>
 }
+<p>대기 시간: @FormatElapsed(elapsedSeconds)</p>
 
 @code {
-    private string recievedMessage = string.Empty;
+    private PeriodicTimer? timer;
+    private string? roomId = string.Empty;
+    private long enqueuedAt = 0;
+    private int elapsedSeconds = 0;
+    private CancellationTokenSource cts = new();
+
+    private string FormatElapsed(int seconds)
+    {
+        int min = seconds / 60;
+        int sec = seconds % 60;
+        return $"{min:D2}분 {sec:D2}초";
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await FlatbufferClient.ConnectAsync("ws://localhost:25050/ws");
         await FlatbufferClient.SendAuthenticationAsync();
+        _ = Task.Run(async () =>
+        {
+            while (!cts.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    var data = await FlatbufferClient.ReceiveAsync(cts.Token);
+                    var flatbufferId = FlatBufferUtil.GetFlatbufferId(data);
+                    switch(flatbufferId)
+                    {
+                        case FlatBufferId.RoomCreate:
+                            var roomCreate = FlatBufferUtil.DeserializeRoomCreate(data);
+                            roomId = roomCreate.RoomId;
+                            break;
+                        default:
+                            break;
+                    };
+                    _ = InvokeAsync(StateHasChanged);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+            }
+        });
+        var stateJson = NavigationManager.HistoryEntryState;
+        if (!string.IsNullOrEmpty(stateJson))
+        {
+            var stateModel = JsonSerializer.Deserialize<StateModel>(stateJson);
+            enqueuedAt = stateModel?.EnqueuedAt ?? 0;
+        }
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        _ = Task.Run(async () =>
+        {
+            while (await timer.WaitForNextTickAsync(cts.Token))
+            {
+                var milliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                elapsedSeconds = (int)((milliseconds - enqueuedAt) / 1000);
+                await InvokeAsync(StateHasChanged);
+            }
+        });
+        var milliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        elapsedSeconds = (int)((milliseconds - enqueuedAt) / 1000);
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            return;
+        }
+        if(string.IsNullOrEmpty(roomId))
+        {
+            return;
+        }
+        NavigationManager.NavigateTo("/room");
+    }
+
+    public void Dispose()
+    {
+        cts.Cancel();
+        cts.Dispose();
+        timer?.Dispose();
+    }
+
+    private class StateModel
+    {
+        public long EnqueuedAt { get; set; }
     }
 }

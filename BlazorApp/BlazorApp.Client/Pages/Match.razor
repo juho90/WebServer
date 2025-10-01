@@ -1,8 +1,10 @@
 ﻿@page "/match"
 @using System.Net.Http.Headers
+@using System.Text.Json
 @inject NavigationManager NavigationManager
-@inject IJSRuntime JSRuntime
 @inject IHttpClientFactory ClientFactory
+
+<PageTitle>Match</PageTitle>
 
 <h3>Match</h3>
 
@@ -28,7 +30,7 @@ else
             RoomId = json?.RoomId;
             if (!string.IsNullOrEmpty(RoomId))
             {
-                NavigationManager.NavigateTo($"/room");
+                NavigationManager.NavigateTo("/room");
                 return;
             }
         }
@@ -41,7 +43,14 @@ else
             {
                 if (json?.EnqueuedAt is long enqueuedAtUnix)
                 {
-                    NavigationManager.NavigateTo($"/wait-room");
+                    var stateJson = JsonSerializer.Serialize(new
+                    {
+                        EnqueuedAt = enqueuedAtUnix
+                    });
+                    NavigationManager.NavigateTo("/wait-room", new NavigationOptions
+                    {
+                        HistoryEntryState = stateJson
+                    });
                     return;
                 }
             }
