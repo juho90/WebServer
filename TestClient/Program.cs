@@ -8,73 +8,85 @@ using TestClient.Commands;
 Console.WriteLine("Hello, World!");
 
 var apiUrl = "http://localhost:29090";
-var uid = "testuser";
-
-using var httpClient = new HttpClient { BaseAddress = new Uri(apiUrl) };
-Console.WriteLine($"API = {httpClient.BaseAddress}");
-
-var maxWaitSeconds = 30;
-var waitIntervalMs = 1000;
-var serverReady = false;
-for (var index = 0; index < maxWaitSeconds; index++)
+try
 {
-    try
+    var uid = "testuser";
+
+    using var httpClient = new HttpClient { BaseAddress = new Uri(apiUrl) };
+    Console.WriteLine($"API = {httpClient.BaseAddress}");
+
+    var maxWaitSeconds = 30;
+    var waitIntervalMs = 1000;
+    var serverReady = false;
+    for (var index = 0; index < maxWaitSeconds; index++)
     {
-        var response = await httpClient.GetAsync($"health");
-        if (response.IsSuccessStatusCode)
+        try
         {
-            serverReady = true;
-            break;
+            var response = await httpClient.GetAsync($"health");
+            if (response.IsSuccessStatusCode)
+            {
+                serverReady = true;
+                break;
+            }
         }
+        catch
+        {
+        }
+        Console.WriteLine("서버 대기 중...");
+        await Task.Delay(waitIntervalMs);
     }
-    catch
+
+    if (!serverReady)
     {
+        Console.WriteLine("서버가 시작되지 않았습니다. 프로그램을 종료합니다.");
+        return;
     }
-    Console.WriteLine("서버 대기 중...");
-    await Task.Delay(waitIntervalMs);
-}
 
-if (!serverReady)
+    var loginPayload = new { UID = uid };
+    var content = new StringContent(JsonSerializer.Serialize(loginPayload), Encoding.UTF8, "application/json");
+
+    Console.WriteLine("JWT 토큰 발급 요청...");
+    var resLogin = await httpClient.PostAsync($"api/auth/test-login", content);
+    resLogin.EnsureSuccessStatusCode();
+    var resStr = await resLogin.Content.ReadAsStringAsync();
+    var resJson = JsonDocument.Parse(resStr).RootElement;
+    var token = resJson.GetProperty("accessToken").GetString();
+
+    Console.WriteLine($"발급받은 토큰: {token}");
+
+    var wsUrl = "ws://localhost:25050/ws";
+
+    var socketUri = new Uri(wsUrl);
+    Console.WriteLine($"WS = {socketUri.AbsoluteUri}");
+
+    using var wsClient = new ClientWebSocket();
+    wsClient.Options.AddSubProtocol(token!);
+
+    Console.WriteLine("WebSocket 연결 시도...");
+    await wsClient.ConnectAsync(socketUri, CancellationToken.None);
+    Console.WriteLine("연결 성공!");
+
+    var sendBuffer = FlatBufferUtil.SerializeEchoMessage("Hello WebSocket!");
+    await wsClient.SendAsync(new ArraySegment<byte>(sendBuffer), WebSocketMessageType.Binary, true, CancellationToken.None);
+    Console.WriteLine("메시지 전송: Hello WebSocket!");
+
+    var receiveBuffer = new byte[1024];
+    var result = await wsClient.ReceiveAsync(new ArraySegment<byte>(receiveBuffer), CancellationToken.None);
+    var echoMessage = FlatBufferUtil.DeserializeEchoMessage(receiveBuffer);
+    Console.WriteLine($"서버 응답: {echoMessage.Message}");
+
+    await Task.Delay(100);
+
+    await wsClient.CloseAsync(WebSocketCloseStatus.NormalClosure, "테스트 종료", CancellationToken.None);
+}
+catch (Exception ex)
 {
-    Console.WriteLine("서버가 시작되지 않았습니다. 프로그램을 종료합니다.");
-    return;
+    Console.WriteLine(ex.Message);
 }
-
-var loginPayload = new { UID = uid };
-var content = new StringContent(JsonSerializer.Serialize(loginPayload), Encoding.UTF8, "application/json");
-
-Console.WriteLine("JWT 토큰 발급 요청...");
-var resLogin = await httpClient.PostAsync($"api/auth/test-login", content);
-resLogin.EnsureSuccessStatusCode();
-var resStr = await resLogin.Content.ReadAsStringAsync();
-var resJson = JsonDocument.Parse(resStr).RootElement;
-var token = resJson.GetProperty("accessToken").GetString();
-
-Console.WriteLine($"발급받은 토큰: {token}");
-
-var wsUrl = "ws://localhost:25050/ws";
-
-var socketUri = new Uri(wsUrl);
-Console.WriteLine($"WS = {socketUri.AbsoluteUri}");
-
-using var client = new ClientWebSocket();
-client.Options.AddSubProtocol(token!);
-
-Console.WriteLine("WebSocket 연결 시도...");
-await client.ConnectAsync(socketUri, CancellationToken.None);
-Console.WriteLine("연결 성공!");
-
-var sendBuffer = FlatBufferUtil.SerializeEchoMessage("Hello WebSocket!");
-await client.SendAsync(new ArraySegment<byte>(sendBuffer), WebSocketMessageType.Binary, true, CancellationToken.None);
-Console.WriteLine("메시지 전송: Hello WebSocket!");
-
-var receiveBuffer = new byte[1024];
-var result = await client.ReceiveAsync(new ArraySegment<byte>(receiveBuffer), CancellationToken.None);
-var echoMessage = FlatBufferUtil.DeserializeEchoMessage(receiveBuffer);
-Console.WriteLine($"서버 응답: {echoMessage.Message}");
-
-await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "테스트 종료", CancellationToken.None);
-Console.WriteLine("연결 종료");
+finally
+{
+    Console.WriteLine("연결 종료");
+}
 
 Console.WriteLine("명령을 입력하세요");
 var registry = new CommandRegistry();

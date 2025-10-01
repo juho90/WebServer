@@ -18,6 +18,7 @@ namespace GameServer
                 await context.Response.WriteAsync("JWT 토큰이 필요합니다.");
                 return;
             }
+            var result = new WebSocketReceiveResult(0, WebSocketMessageType.Close, true);
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
             try
             {
@@ -25,7 +26,7 @@ namespace GameServer
                 var principal = jwtValidator.Validate(token);
                 var uid = principal.Identity?.Name!;
                 var buffer = new byte[1024];
-                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 while (!result.CloseStatus.HasValue)
                 {
                     var flatbufferId = FlatBufferUtil.GetFlatbufferId(buffer);
@@ -47,16 +48,17 @@ namespace GameServer
                     }
                     result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 }
-                await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
             }
             catch (Exception ex)
             {
-                if (webSocket != null && webSocket.State == WebSocketState.Open)
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                if (result.CloseStatus.HasValue)
                 {
-                    await webSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, ex.Message, CancellationToken.None);
+                    await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
                 }
-                context.Response.StatusCode = 400;
-                await context.Response.WriteAsync("JWT 토큰이 유효하지 않습니다.");
             }
         }
 
