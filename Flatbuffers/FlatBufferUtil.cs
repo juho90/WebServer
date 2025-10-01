@@ -9,7 +9,8 @@ namespace Flatbuffers
     {
         Authentication = 0,
         EchoMessage = 1,
-        RoomEnter = 2,
+        RoomCreate = 2,
+        RoomEnter = 3,
     }
 
     public static class FlatBufferUtil
@@ -59,6 +60,27 @@ namespace Flatbuffers
         {
             var buffer = new ByteBuffer(bytes, 1);
             return EchoMessage.GetRootAsEchoMessage(buffer);
+        }
+
+        public static byte[] SerializeRoomCreate(string roomId)
+        {
+            var builder = new FlatBufferBuilder(1024);
+            var roomIdOffset = builder.CreateString(roomId);
+            RoomCreate.StartRoomCreate(builder);
+            RoomEnter.AddRoomId(builder, roomIdOffset);
+            var inputOffset = RoomCreate.EndRoomCreate(builder);
+            builder.Finish(inputOffset.Value);
+            var flatBufferBytes = builder.SizedByteArray();
+            var result = new byte[1 + flatBufferBytes.Length];
+            result[0] = (byte)FlatBufferId.RoomCreate;
+            Buffer.BlockCopy(flatBufferBytes, 0, result, 1, flatBufferBytes.Length);
+            return result;
+        }
+
+        public static RoomCreate DeserializeRoomCreate(byte[] bytes)
+        {
+            var buffer = new ByteBuffer(bytes, 1);
+            return RoomCreate.GetRootAsRoomCreate(buffer);
         }
 
         public static byte[] SerializeRoomEnter(string roomId)

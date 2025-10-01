@@ -3,54 +3,81 @@ using System.Net.WebSockets;
 
 namespace GameServer.Services
 {
-    public class WebSocketBroadcastManager
+    public static class WebSocketBroadcastManager
     {
+        private static readonly ConcurrentDictionary<string, WebSocket> webSocketPersonal = new();
         private static readonly ConcurrentDictionary<string, List<WebSocket>> webSocketGroups = new();
 
-        public static void AddSocket(string groupId, WebSocket socket)
+        public static void Add(string uid, WebSocket socket)
         {
-            var socketGroup = webSocketGroups.GetOrAdd(groupId, _ => []);
-            lock (socketGroup)
-            {
-                socketGroup.Add(socket);
-            }
+            webSocketPersonal[uid] = socket;
         }
 
-        public static void RemoveSocket(string groupId, WebSocket socket)
+        public static void Remove(string uid)
         {
-            if (webSocketGroups.TryGetValue(groupId, out var sockets) is false)
+            webSocketPersonal.TryRemove(uid, out _);
+        }
+
+        public static void BroadcastAsync(string uid, byte[] data)
+        {
+            if (webSocketPersonal.TryGetValue(uid, out var webSocket) is false)
             {
                 return;
             }
-            lock (sockets)
+            webSocket.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, CancellationToken.None);
+        }
+
+        public static void AddGroup(string groupId, WebSocket webSocket)
+        {
+            var webSocketGroup = webSocketGroups.GetOrAdd(groupId, _ => []);
+            lock (webSocketGroup)
             {
-                sockets.Remove(socket);
+                webSocketGroup.Add(webSocket);
             }
         }
 
-        public static void BroadcastAsync(string roomId, byte[] message, WebSocketMessageType type = WebSocketMessageType.Text)
+        public static void RemoveGroup(string groupId, WebSocket webSocket)
         {
-            if (webSocketGroups.TryGetValue(roomId, out var sockets) is false)
+            if (webSocketGroups.TryGetValue(groupId, out var webSocketGroup) is false)
             {
                 return;
             }
-            lock (sockets)
+            lock (webSocketGroup)
             {
-                List<WebSocket> closedSockets = [];
-                foreach (var socket in sockets)
+                webSocketGroup.Remove(webSocket);
+            }
+        }
+
+        public static void BroadcastGroupAsync(string roomId, byte[] data)
+        {
+            if (webSocketGroups.TryGetValue(roomId, out var webSocketGroup) is false)
+            {
+                return;
+            }
+            lock (webSocketGroup)
+            {
+                List<WebSocket> closedWebSockets = [];
+                foreach (var webSocket in webSocketGroup)
                 {
-                    if (socket.State is WebSocketState.Open)
+                    try
                     {
-                        socket.SendAsync(new ArraySegment<byte>(message), type, true, CancellationToken.None);
+                        if (webSocket.State is WebSocketState.Open)
+                        {
+                            webSocket.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, CancellationToken.None);
+                        }
+                        else
+                        {
+                            closedWebSockets.Add(webSocket);
+                        }
                     }
-                    else
+                    catch
                     {
-                        closedSockets.Add(socket);
+                        closedWebSockets.Add(webSocket);
                     }
                 }
-                foreach (var s in closedSockets)
+                foreach (var s in closedWebSockets)
                 {
-                    sockets.Remove(s);
+                    webSocketGroup.Remove(s);
                 }
             }
         }

@@ -3,15 +3,15 @@ using StackExchange.Redis;
 
 namespace GameServer.Services
 {
-    public class RoomMatcher(IConnectionMultiplexer mux, RoomMatchSettings settings)
+    public class RoomMatcher(IConnectionMultiplexer mux, RoomMatchSettings roomMatchSettings)
     {
         private readonly IDatabase redis = mux.GetDatabase();
-        private readonly RoomMatchSettings settings = settings;
+        private readonly RoomMatchSettings roomMatchSettings = roomMatchSettings;
 
-        public async Task<Guid?> TryMatchAsync(string region, int capacity, CancellationToken ct = default)
+        public async Task<string?> TryRoomMatch(string region, int capacity, CancellationToken ct = default)
         {
             var matchQueue = RoomMatchKeys.Queue(region, capacity);
-            var queueEntries = await redis.SortedSetRangeByRankWithScoresAsync(matchQueue, 0, settings.UserPool - 1, Order.Ascending);
+            var queueEntries = await redis.SortedSetRangeByRankWithScoresAsync(matchQueue, 0, roomMatchSettings.UserPool - 1, Order.Ascending);
             if (queueEntries.Length < capacity)
             {
                 return null;
@@ -44,12 +44,12 @@ namespace GameServer.Services
                         minWait = Math.Min(minWait, 0);
                     }
                 }
-                var delta = settings.BaseMMR + ((int)(minWait / 1000 / 5) * settings.MMRPer5Sec);
-                var roomId = Guid.NewGuid();
+                var delta = roomMatchSettings.BaseMMR + ((int)(minWait / 1000 / 5) * roomMatchSettings.MMRPer5Sec);
+                var roomId = Guid.NewGuid().ToString();
                 var keys = new RedisKey[]
                 {
                     matchQueue,
-                    RoomMatchKeys.RoomMembers(roomId),
+                    RoomMatchKeys.RoomMembers(roomId!),
                     RoomMatchKeys.Events
                 };
                 var argv = new List<RedisValue>
@@ -57,7 +57,7 @@ namespace GameServer.Services
                     roomId.ToString(),
                     now,
                     delta,
-                    settings.TicketTtlMs,
+                    roomMatchSettings.TicketTtlMs,
                     capacity
                 };
                 for (var index = 0; index < capacity; index++)
@@ -73,6 +73,12 @@ namespace GameServer.Services
                 }
             }
             return null;
+        }
+
+        public async Task<string[]> GetRoomMembers(string roomId)
+        {
+            var members = await redis.SetMembersAsync(RoomMatchKeys.RoomMembers(roomId));
+            return Array.ConvertAll(members, member => (string)member!);
         }
     }
 }

@@ -1,0 +1,7 @@
+﻿namespace Room;
+
+table RoomCreate {
+  room_id:string;
+}
+
+root_type RoomCreate;

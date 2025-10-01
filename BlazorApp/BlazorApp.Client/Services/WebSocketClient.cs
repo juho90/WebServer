@@ -6,6 +6,7 @@ namespace BlazorApp.Client.Services
     {
         private readonly IJSRuntime jsRuntime;
         private readonly DotNetObjectReference<WebSocketClient>? thisRef;
+        private TaskCompletionSource? connectTcs = null;
 
         public event Action<byte[]>? OnReceive;
 
@@ -17,7 +18,9 @@ namespace BlazorApp.Client.Services
 
         public async Task ConnectAsync(string url)
         {
+            connectTcs = new TaskCompletionSource();
             await jsRuntime.InvokeVoidAsync("webSocket.connect", url, thisRef);
+            await connectTcs.Task;
         }
 
         public async Task SendAsync(byte[] data)
@@ -30,17 +33,23 @@ namespace BlazorApp.Client.Services
             await jsRuntime.InvokeVoidAsync("webSocket.close");
         }
 
-        [JSInvokable]
-        public void ReceiveMessage(byte[] data)
-        {
-            OnReceive?.Invoke(data);
-        }
-
         public async ValueTask DisposeAsync()
         {
             thisRef?.Dispose();
             await CloseAsync();
             GC.SuppressFinalize(this);
+        }
+
+        [JSInvokable]
+        public void Open()
+        {
+            connectTcs?.TrySetResult();
+        }
+
+        [JSInvokable]
+        public void ReceiveMessage(byte[] data)
+        {
+            OnReceive?.Invoke(data);
         }
     }
 }

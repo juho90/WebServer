@@ -17,9 +17,9 @@
             return $"match:u:{uid}";
         }
 
-        public static string RoomMembers(Guid room)
+        public static string RoomMembers(string roomId)
         {
-            return $"room:{room}:members";
+            return $"room:{roomId}:members";
         }
 
         public const string Events = "match:events";

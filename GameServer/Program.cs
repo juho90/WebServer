@@ -1,8 +1,8 @@
 ﻿using CommonLibrary.Extensions;
 using CommonLibrary.Services;
 using GameServer;
+using GameServer.BackgroundServices;
 using GameServer.Services;
-using WebServer.BackgroundServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +13,7 @@ builder.Services.AddRedis(builder.Configuration);
 builder.Services.BindRoomMatchSettings(builder.Configuration);
 builder.Services.AddSingleton<JwtValidator>()
     .AddHostedService<RoomMatchWorker>()
+    .AddSingleton<WebSocketBroker>()
     .AddSingleton<RoomMatcher>()
     .AddScoped<RoomMatchService>();
 
@@ -23,6 +24,10 @@ app.MapGrpcService<GreeterService>();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 
 app.UseWebSockets();
-app.Map("/ws", WebSocketProgram.Main);
+app.Map("/ws", async (httpContext) =>
+{
+    var webSocketClient = new WebSocketClient(httpContext);
+    await webSocketClient.Run();
+});
 
 app.Run();

@@ -1,40 +1,43 @@
 ﻿using CommonLibrary.Services;
 using GameServer.Services;
 
-namespace WebServer.BackgroundServices
+namespace GameServer.BackgroundServices
 {
-    public class RoomMatchWorker(RoomMatcher matcher, RoomMatchSettings settings, ILogger<RoomMatchWorker> log) : BackgroundService
+    public class RoomMatchWorker(WebSocketBroker webSocketBroker, RoomMatcher matcher, RoomMatchSettings settings, ILogger<RoomMatchWorker> log) : BackgroundService
     {
-        private readonly RoomMatcher matcher = matcher;
-        private readonly RoomMatchSettings settings = settings;
-        private readonly ILogger<RoomMatchWorker> log = log;
+        private readonly WebSocketBroker WebSocketBroker = webSocketBroker;
+        private readonly RoomMatcher roomMatcher = matcher;
+        private readonly RoomMatchSettings roomMatchSettings = settings;
+        private readonly ILogger<RoomMatchWorker> logger = log;
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            log.LogInformation("Lua MatchWorker started");
+            logger.LogInformation("Lua MatchWorker started");
             while (!ct.IsCancellationRequested)
             {
                 try
                 {
-                    foreach (var region in settings.Regions)
+                    foreach (var region in roomMatchSettings.Regions)
                     {
-                        foreach (var capacity in settings.Capacities)
+                        foreach (var capacity in roomMatchSettings.Capacities)
                         {
-                            var room = await matcher.TryMatchAsync(region, capacity, ct);
-                            if (room.HasValue)
+                            var roomId = await roomMatcher.TryRoomMatch(region, capacity, ct);
+                            if (string.IsNullOrEmpty(roomId))
                             {
-                                log.LogInformation("matched {capacity}p in {region} => {room}", capacity, region, room);
+                                continue;
                             }
+                            logger.LogInformation("matched {capacity}p in {region} => {room}", capacity, region, roomId);
+                            WebSocketBroker.NotifyRoomCreate(roomId);
                         }
                     }
-                    await Task.Delay(settings.LoopIntervalMs, ct);
+                    await Task.Delay(roomMatchSettings.LoopIntervalMs, ct);
                 }
                 catch (OperationCanceledException)
                 {
                 }
                 catch (Exception ex)
                 {
-                    log.LogError(ex, "loop error");
+                    logger.LogError(ex, "loop error");
                     await Task.Delay(1000, ct);
                 }
             }
