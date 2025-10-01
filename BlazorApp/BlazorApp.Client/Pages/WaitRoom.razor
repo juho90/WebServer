@@ -1,0 +1,22 @@
+﻿@page "/wait-room"
+@using BlazorApp.Client.Services
+@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
+@inject IWebAssemblyHostEnvironment HostEnvironment
+@inject FlatbufferClient FlatbufferClient
+
+<h3>WaitRoom</h3>
+
+@if (HostEnvironment.Environment == "Development")
+{
+    <p>@recievedMessage</p>
+}
+
+@code {
+    private string recievedMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FlatbufferClient.ConnectAsync("ws://localhost:25050/ws");
+        await FlatbufferClient.SendAuthenticationAsync();
+    }
+}

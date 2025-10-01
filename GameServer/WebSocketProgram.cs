@@ -1,4 +1,5 @@
-﻿using CommonLibrary.Services;
+﻿using Auth;
+using CommonLibrary.Services;
 using Echo;
 using Flatbuffers;
 using GameServer.Services;
@@ -9,63 +10,66 @@ namespace GameServer
 {
     public static class WebSocketProgram
     {
-        public static async void Main(HttpContext context)
+        public static async Task Main(HttpContext context)
         {
-            var token = context.Request.Headers.SecWebSocketProtocol.FirstOrDefault();
-            if (string.IsNullOrEmpty(token))
-            {
-                context.Response.StatusCode = 401;
-                await context.Response.WriteAsync("JWT 토큰이 필요합니다.");
-                return;
-            }
-            var result = new WebSocketReceiveResult(0, WebSocketMessageType.Close, true);
+            var cts = new CancellationTokenSource();
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
             try
             {
-                var jwtValidator = context.RequestServices.GetRequiredService<JwtValidator>();
-                var principal = jwtValidator.Validate(token);
-                var uid = principal.Identity?.Name!;
+                string? uid = null;
                 var buffer = new byte[1024];
-                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                while (!result.CloseStatus.HasValue)
+                do
                 {
+                    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cts.Token);
+                    if (result.CloseStatus.HasValue)
+                    {
+                        await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, cts.Token);
+                        break;
+                    }
                     var flatbufferId = FlatBufferUtil.GetFlatbufferId(buffer);
+                    if (string.IsNullOrEmpty(uid) && flatbufferId != FlatBufferId.Authentication)
+                    {
+                        throw new Exception("인증되지 않은 상태에서 다른 메시지를 보낼 수 없습니다.");
+                    }
                     switch (flatbufferId)
                     {
-                        case FlatBufferId.EchoMessage:
+                        case FlatBufferId.Authentication:
+                            var authentication = FlatBufferUtil.DeserializeAuthentication(buffer);
+                            uid = OnAuthentication(context, authentication);
+                            break;
 
+                        case FlatBufferId.EchoMessage:
                             var echoMessage = FlatBufferUtil.DeserializeEchoMessage(buffer);
-                            await OnEchoMessage(webSocket, echoMessage);
+                            await OnEchoMessage(webSocket, echoMessage, cts.Token);
                             break;
 
                         case FlatBufferId.RoomEnter:
                             var roomEnter = FlatBufferUtil.DeserializeRoomEnter(buffer);
-                            await OnRoomEnter(context, webSocket, uid, roomEnter);
+                            await OnRoomEnter(context, webSocket, uid!, roomEnter);
                             break;
 
                         default:
                             break;
                     }
-                    result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                }
+                } while (true);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }
-            finally
-            {
-                if (result.CloseStatus.HasValue)
-                {
-                    await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
-                }
-            }
         }
 
-        public static async Task OnEchoMessage(WebSocket webSocket, EchoMessage echoMessage)
+        public static string OnAuthentication(HttpContext context, Authentication authentication)
+        {
+            var jwtValidator = context.RequestServices.GetRequiredService<JwtValidator>();
+            var principal = jwtValidator.Validate(authentication.AccessToken);
+            return principal.Identity?.Name!;
+        }
+
+        public static async Task OnEchoMessage(WebSocket webSocket, EchoMessage echoMessage, CancellationToken ct)
         {
             var buffer = FlatBufferUtil.SerializeEchoMessage(echoMessage.Message);
-            await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Binary, true, CancellationToken.None);
+            await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Binary, true, ct);
         }
 
         public static async Task OnRoomEnter(HttpContext context, WebSocket webSocket, string uid, RoomEnter roomEnter)

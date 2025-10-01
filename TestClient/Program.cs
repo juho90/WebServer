@@ -10,6 +10,8 @@ Console.WriteLine("Hello, World!");
 var apiUrl = "http://localhost:29090";
 try
 {
+    using var cts = new CancellationTokenSource();
+
     var uid = "testuser";
 
     using var httpClient = new HttpClient { BaseAddress = new Uri(apiUrl) };
@@ -60,24 +62,25 @@ try
     Console.WriteLine($"WS = {socketUri.AbsoluteUri}");
 
     using var wsClient = new ClientWebSocket();
-    wsClient.Options.AddSubProtocol(token!);
 
     Console.WriteLine("WebSocket 연결 시도...");
-    await wsClient.ConnectAsync(socketUri, CancellationToken.None);
+    await wsClient.ConnectAsync(socketUri, cts.Token);
     Console.WriteLine("연결 성공!");
 
+    var authBuffer = FlatBufferUtil.SerializeAuthentication(token!);
+    await wsClient.SendAsync(new ArraySegment<byte>(authBuffer), WebSocketMessageType.Binary, true, cts.Token);
+    Console.WriteLine("인증 메시지 전송");
+
     var sendBuffer = FlatBufferUtil.SerializeEchoMessage("Hello WebSocket!");
-    await wsClient.SendAsync(new ArraySegment<byte>(sendBuffer), WebSocketMessageType.Binary, true, CancellationToken.None);
+    await wsClient.SendAsync(new ArraySegment<byte>(sendBuffer), WebSocketMessageType.Binary, true, cts.Token);
     Console.WriteLine("메시지 전송: Hello WebSocket!");
 
     var receiveBuffer = new byte[1024];
-    var result = await wsClient.ReceiveAsync(new ArraySegment<byte>(receiveBuffer), CancellationToken.None);
+    var result = await wsClient.ReceiveAsync(new ArraySegment<byte>(receiveBuffer), cts.Token);
     var echoMessage = FlatBufferUtil.DeserializeEchoMessage(receiveBuffer);
     Console.WriteLine($"서버 응답: {echoMessage.Message}");
 
-    await Task.Delay(100);
-
-    await wsClient.CloseAsync(WebSocketCloseStatus.NormalClosure, "테스트 종료", CancellationToken.None);
+    await wsClient.CloseAsync(WebSocketCloseStatus.NormalClosure, "테스트 종료", cts.Token);
 }
 catch (Exception ex)
 {

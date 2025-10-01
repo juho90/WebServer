@@ -1,4 +1,5 @@
-﻿using Echo;
+﻿using Auth;
+using Echo;
 using Google.FlatBuffers;
 using Room;
 
@@ -6,8 +7,9 @@ namespace Flatbuffers
 {
     public enum FlatBufferId : byte
     {
-        EchoMessage = 0,
-        RoomEnter = 1,
+        Authentication = 0,
+        EchoMessage = 1,
+        RoomEnter = 2,
     }
 
     public static class FlatBufferUtil
@@ -15,6 +17,27 @@ namespace Flatbuffers
         public static FlatBufferId GetFlatbufferId(byte[] bytes)
         {
             return (FlatBufferId)bytes[0];
+        }
+
+        public static byte[] SerializeAuthentication(string accessToken)
+        {
+            var builder = new FlatBufferBuilder(1024);
+            var accessTokenOffset = builder.CreateString(accessToken);
+            Authentication.StartAuthentication(builder);
+            Authentication.AddAccessToken(builder, accessTokenOffset);
+            var inputOffset = Authentication.EndAuthentication(builder);
+            builder.Finish(inputOffset.Value);
+            var flatBufferBytes = builder.SizedByteArray();
+            var result = new byte[1 + flatBufferBytes.Length];
+            result[0] = (byte)FlatBufferId.Authentication;
+            Buffer.BlockCopy(flatBufferBytes, 0, result, 1, flatBufferBytes.Length);
+            return result;
+        }
+
+        public static Authentication DeserializeAuthentication(byte[] bytes)
+        {
+            var buffer = new ByteBuffer(bytes, 1);
+            return Authentication.GetRootAsAuthentication(buffer);
         }
 
         public static byte[] SerializeEchoMessage(string message)

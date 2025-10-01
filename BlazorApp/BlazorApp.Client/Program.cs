@@ -3,7 +3,10 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-builder.Services.AddScoped<AccessTokenHandler>();
+builder.Services.AddSingleton<WebSocketClient>()
+    .AddScoped<AccessTokenHandler>()
+    .AddScoped<FlatbufferClient>();
+
 builder.Services.AddHttpClient("ApiClient", client =>
     {
         client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
