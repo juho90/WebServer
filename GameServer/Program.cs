@@ -17,10 +17,28 @@ builder.Services.AddSingleton<JwtValidator>()
     .AddSingleton<RoomMatcher>()
     .AddScoped<RoomMatchService>();
 
+builder.Services.AddAuthorization();
+
+// CORS 정책 추가
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorClient", policy =>
+    {
+        policy.WithOrigins("http://localhost:29090")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.MapGrpcService<GreeterService>();
+app.UseCors("AllowBlazorClient");
+app.UseGrpcWeb();
+app.MapGrpcService<GreeterService>()
+    .EnableGrpcWeb()
+    .RequireAuthorization();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 
 app.UseWebSockets();
@@ -29,5 +47,7 @@ app.Map("/ws", async (httpContext) =>
     var webSocketClient = new WebSocketClient(httpContext);
     await webSocketClient.Run();
 });
+
+app.UseAuthorization();
 
 app.Run();

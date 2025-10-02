@@ -1,8 +1,10 @@
 ﻿@page "/match"
 @using System.Net.Http.Headers
 @using System.Text.Json
+@using BlazorApp.Client.Extensions
+@inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
-@inject IHttpClientFactory ClientFactory
+@inject HttpClient Http
 
 <PageTitle>Match</PageTitle>
 
@@ -18,41 +20,32 @@ else
 }
 
 @code {
-    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
-    private string? RoomId;
+    private string? RoomId = null;
+    private CancellationTokenSource cts = new();
 
     protected override async Task OnInitializedAsync()
     {
-        var roomIdResponse = await Http.GetAsync("api/match/room-id");
-        if (roomIdResponse.IsSuccessStatusCode)
+        await Http.AuthorizeAsync(JSRuntime);
+        var roomIdRes = await Http.GetToAsync<RoomIdResponse>("api/match/room-id", cts.Token);
+        if (!string.IsNullOrEmpty(roomIdRes?.RoomId))
         {
-            var json = await roomIdResponse.Content.ReadFromJsonAsync<RoomIdResponse>();
-            RoomId = json?.RoomId;
-            if (!string.IsNullOrEmpty(RoomId))
-            {
-                NavigationManager.NavigateTo("/room");
-                return;
-            }
+            NavigationManager.NavigateTo("/room");
+            return;
         }
-        var statusResponse = await Http.GetAsync("api/match/matching-status");
-        if (statusResponse.IsSuccessStatusCode)
+        var statusRes = await Http.GetToAsync<MatchingStatusResponse>("api/match/matching-status", cts.Token);
+        if (statusRes?.isMatching is true)
         {
-            var json = await statusResponse.Content.ReadFromJsonAsync<MatchingStatusResponse>();
-            var isMatching = json?.isMatching is true;
-            if (isMatching is true)
+            if (statusRes.EnqueuedAt is long enqueuedAtUnix)
             {
-                if (json?.EnqueuedAt is long enqueuedAtUnix)
+                var stateJson = JsonSerializer.Serialize(new
                 {
-                    var stateJson = JsonSerializer.Serialize(new
-                    {
-                        EnqueuedAt = enqueuedAtUnix
-                    });
-                    NavigationManager.NavigateTo("/wait-room", new NavigationOptions
-                    {
-                        HistoryEntryState = stateJson
-                    });
-                    return;
-                }
+                    EnqueuedAt = enqueuedAtUnix
+                });
+                NavigationManager.NavigateTo("/wait-room", new NavigationOptions
+                {
+                    HistoryEntryState = stateJson
+                });
+                return;
             }
         }
     }
@@ -61,16 +54,19 @@ else
     {
         var region = "kr";
         var capacity = 4;
-        var mmr = 1000;
-        var response = await Http.PostAsync($"api/match/matching?region={region}&capacity={capacity}&mmr={mmr}", null);
-        if (response.IsSuccessStatusCode)
+        var mmr = 300;
+        var matchingUri = $"api/match/matching?region={region}&capacity={capacity}&mmr={mmr}";
+        var matchingRes = await Http.PostToAsync<MatchingResponse>(matchingUri, null, cts.Token);
+        if (matchingRes?.Enqueued is true)
         {
-            var json = await response.Content.ReadFromJsonAsync<MatchingResponse>();
-            if (json?.Enqueued is true)
-            {
-                await OnInitializedAsync();
-            }
+            await OnInitializedAsync();
         }
+    }
+
+    public void Dispose()
+    {
+        cts.Cancel();
+        cts.Dispose();
     }
 
     class RoomIdResponse

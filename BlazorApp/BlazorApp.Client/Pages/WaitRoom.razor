@@ -1,11 +1,15 @@
 ﻿@page "/wait-room"
 @using BlazorApp.Client.Services
 @using Flatbuffers
-@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
 @using System.Text.Json
+@using Grpc.Core
+@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
+@using MyProtos
+@inject IJSRuntime JSRuntime
 @inject IWebAssemblyHostEnvironment HostEnvironment
 @inject NavigationManager NavigationManager
 @inject FlatbufferClient FlatbufferClient
+@inject Greeter.GreeterClient GrpcClient
 
 <PageTitle>Wait...</PageTitle>
 
@@ -77,6 +81,12 @@
         });
         var milliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         elapsedSeconds = (int)((milliseconds - enqueuedAt) / 1000);
+        var accessToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
+        var headers = new Metadata
+        {
+            { "Authorization", $"Bearer {accessToken}" }
+        };
+        var reply = await GrpcClient.SayHelloAsync(new MyProtos.HelloRequest { Name = "Blazor" }, headers);
     }
 
     protected override void OnAfterRender(bool firstRender)

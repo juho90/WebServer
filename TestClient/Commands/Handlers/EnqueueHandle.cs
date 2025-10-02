@@ -1,14 +1,14 @@
-﻿using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
+﻿using System.Net.Http.Headers;
+using TestClient.Extensions;
 
 namespace TestClient.Commands.Handlers
 {
     public class EnqueueHandle
     {
         public record AuthDto(string? AccessToken);
-        public record TicketDto(string? RoomId);
-        public record EnterDto(bool? Enqueued);
+        public record MatchingDto(bool? Enqueued);
+        public record MatchingStateDto(bool? IsMatching);
+        public record RoomIdDto(string? RoomId);
 
         public static async Task Handler(CommandInput input)
         {
@@ -37,34 +37,34 @@ namespace TestClient.Commands.Handlers
             await Task.WhenAll(tasks);
         }
 
-        public static async Task Enqueue(string url, int offset, int count, CancellationToken cancellationToken)
+        public static async Task Enqueue(string url, int offset, int count, CancellationToken ct)
         {
             var httpClient = new HttpClient { BaseAddress = new Uri(url) };
             for (var index = 0; index < count; index++)
             {
                 var uid = $"testuser{offset + index}";
                 var loginPayload = new { UID = uid };
-                var content = new StringContent(JsonSerializer.Serialize(loginPayload), Encoding.UTF8, "application/json");
-                var resLogin = await httpClient.PostAsync($"api/auth/test-login", content, cancellationToken);
-                resLogin.EnsureSuccessStatusCode();
-                cancellationToken.ThrowIfCancellationRequested();
-                var authDto = await resLogin.Content.ReadFromJsonAsync<AuthDto>(cancellationToken);
-                httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authDto?.AccessToken);
-                using var resTicket = await httpClient.GetAsync("api/match/ticket", cancellationToken);
-                resTicket.EnsureSuccessStatusCode();
-                cancellationToken.ThrowIfCancellationRequested();
-                var ticketDto = await resTicket.Content.ReadFromJsonAsync<TicketDto>(cancellationToken);
-                if (!string.IsNullOrEmpty(ticketDto?.RoomId))
+                var authDto = await httpClient.PostToAsync<AuthDto>("api/auth/test-login", loginPayload, ct);
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authDto?.AccessToken);
+                var roomIdDto = await httpClient.GetToAsync<RoomIdDto>("api/match/room-id", ct);
+                if (!string.IsNullOrEmpty(roomIdDto?.RoomId))
                 {
-                    Console.WriteLine($"[{uid}] ticketUri => {ticketDto?.RoomId}");
+                    Console.WriteLine($"[{uid}] room-id => {roomIdDto?.RoomId}");
                     continue;
                 }
-                using var resEnqueue = await httpClient.PostAsync("api/match/enter?region=kr&capacity=4&mmr=300", content: null, cancellationToken);
-                resEnqueue.EnsureSuccessStatusCode();
-                cancellationToken.ThrowIfCancellationRequested();
-                var enterDto = await resEnqueue.Content.ReadFromJsonAsync<EnterDto>(cancellationToken);
-                Console.WriteLine($"[{uid}] enqueued => {enterDto?.Enqueued}");
-                await Task.Delay(50, cancellationToken);
+                var matchingStateDto = await httpClient.GetToAsync<MatchingStateDto>("api/match/matching-status", ct);
+                if (matchingStateDto?.IsMatching == true)
+                {
+                    Console.WriteLine($"[{uid}] matching => {matchingStateDto?.IsMatching}");
+                    continue;
+                }
+                var region = "kr";
+                var capacity = 4;
+                var mmr = 300;
+                var matchingUri = $"api/match/matching?region={region}&capacity={capacity}&mmr={mmr}";
+                var enterDto = await httpClient.PostToAsync<MatchingDto>(matchingUri, null, ct);
+                Console.WriteLine($"[{uid}] try => {enterDto?.Enqueued}");
+                await Task.Delay(50, ct);
             }
         }
     }

@@ -27,9 +27,9 @@ namespace BlazorApp.Client.Services
             await webSocketClient.ConnectAsync(url);
         }
 
-        public async Task<byte[]> ReceiveAsync(CancellationToken cancellationToken)
+        public async Task<byte[]> ReceiveAsync(CancellationToken ct)
         {
-            return await messageQueue.Reader.ReadAsync(cancellationToken);
+            return await messageQueue.Reader.ReadAsync(ct);
         }
 
         public async Task SendAuthenticationAsync()

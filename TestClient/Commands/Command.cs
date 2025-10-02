@@ -84,12 +84,12 @@
         }
     }
 
-    public class CommandInput(CommandRegistry registry, Dictionary<string, object> argDict, string url, CancellationToken cancellationToken)
+    public class CommandInput(CommandRegistry registry, Dictionary<string, object> argDict, string url, CancellationToken ct)
     {
         public CommandRegistry Registry { get; set; } = registry;
         public Dictionary<string, object> ArgDict { get; set; } = argDict;
         public string URL { get; set; } = url;
-        public CancellationToken CancellationToken { get; set; } = cancellationToken;
+        public CancellationToken CancellationToken { get; set; } = ct;
     }
 
     public class CommandValidate

@@ -1,7 +1,8 @@
 ﻿@page "/test-login"
+@using BlazorApp.Client.Extensions
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
-@inject IHttpClientFactory ClientFactory
+@inject HttpClient Http
 
 <PageTitle>Login</PageTitle>
 
@@ -19,9 +20,9 @@
 }
 
 @code {
-    private HttpClient Http => ClientFactory.CreateClient("ApiClient");
     private string UID = string.Empty;
     private string Result = string.Empty;
+    private CancellationTokenSource cts = new();
 
     private async Task LoginAsync()
     {
@@ -32,27 +33,24 @@
         }
         try
         {
-            var response = await Http.PostAsJsonAsync("/api/auth/test-login", new { uid = UID });
-            var json = await response.Content.ReadFromJsonAsync<LoginResponse>();
-            var accessToken = json?.AccessToken;
-            if (!string.IsNullOrEmpty(accessToken))
+            var loginRes = await Http.PostToAsync<LoginResponse>("/api/auth/test-login", new { uid = UID }, cts.Token);
+            if (loginRes != null)
             {
-                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "accessToken", accessToken);
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "accessToken", loginRes.AccessToken);
             }
-            if (response.IsSuccessStatusCode)
-            {
-                Result = "Login successful!";
-            }
-            else
-            {
-                Result = "Login failed.";
-            }
+            Result = "Login successful!";
+            NavigationManager.NavigateTo("/match");
         }
         catch (Exception ex)
         {
             Result = $"Error: {ex.Message}";
         }
-        NavigationManager.NavigateTo("/match");
+    }
+
+    public void Dispose()
+    {
+        cts.Cancel();
+        cts.Dispose();
     }
 
     class LoginResponse

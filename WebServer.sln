@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonLibrary", "CommonLibr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flatbuffers", "Flatbuffers\Flatbuffers.csproj", "{3C4677F6-47DE-4C80-B441-3C5FE7A888EA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Protos", "Protos\Protos.csproj", "{9069ABF8-6FFC-4513-8858-96DF1FBEA9F5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{3C4677F6-47DE-4C80-B441-3C5FE7A888EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3C4677F6-47DE-4C80-B441-3C5FE7A888EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3C4677F6-47DE-4C80-B441-3C5FE7A888EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9069ABF8-6FFC-4513-8858-96DF1FBEA9F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9069ABF8-6FFC-4513-8858-96DF1FBEA9F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9069ABF8-6FFC-4513-8858-96DF1FBEA9F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9069ABF8-6FFC-4513-8858-96DF1FBEA9F5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

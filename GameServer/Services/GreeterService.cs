@@ -1,11 +1,10 @@
 ﻿using Grpc.Core;
+using MyProtos;
 
 namespace GameServer.Services
 {
-    public class GreeterService(ILogger<GreeterService> logger) : Greeter.GreeterBase
+    public class GreeterService() : Greeter.GreeterBase
     {
-        private readonly ILogger<GreeterService> logger = logger;
-
         public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
         {
             return Task.FromResult(new HelloReply

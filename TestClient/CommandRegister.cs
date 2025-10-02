@@ -17,12 +17,12 @@ namespace TestClient
                 ArgSpecs = [
                     new("count", CommandArgType.Int, required: true)
                     {
-                        Min = 10,
-                        Max = 100
+                        Min = 1,
+                        Max = 20
                     },
                     new("each", CommandArgType.Int, required: true)
                     {
-                        Min = 25,
+                        Min = 1,
                         Max = 50
                     }
                 ],
