@@ -94,7 +94,7 @@
         {
             { "Authorization", $"Bearer {accessToken}" }
         };
-        var roomIdReply = await GrpcClient.RoomIdAsync(new RoomIdRequest {}, headers);
+        var roomIdReply = await GrpcClient.RoomIdAsync(new RoomIdRequest { }, headers);
         roomId = roomIdReply?.RoomId;
         if(string.IsNullOrEmpty(roomId))
         {

@@ -84,11 +84,16 @@
         }
     }
 
-    public class CommandInput(CommandRegistry registry, Dictionary<string, object> argDict, string url, CancellationToken ct)
+    public class CommandInput(CommandRegistry registry
+        , Dictionary<string, object> argDict
+        , string httpUri
+        , string grpcUri
+        , CancellationToken ct)
     {
         public CommandRegistry Registry { get; set; } = registry;
         public Dictionary<string, object> ArgDict { get; set; } = argDict;
-        public string URL { get; set; } = url;
+        public string HttpURI { get; set; } = httpUri;
+        public string GrpcURI { get; set; } = grpcUri;
         public CancellationToken CancellationToken { get; set; } = ct;
     }
 

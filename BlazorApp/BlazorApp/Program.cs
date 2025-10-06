@@ -8,6 +8,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddJwt(builder.Configuration);
+builder.Services.AddRedis(builder.Configuration);
+builder.Services.BindRoomMatchSettings(builder.Configuration);
+
+builder.Services.AddSingleton<JwtService>()
+    .AddSingleton<JwtValidator>();
+
 builder.Services.AddSwaggerGen(configuration =>
 {
     configuration.SwaggerDoc("v1", new OpenApiInfo { Title = "WebServer API", Version = "v1" });
@@ -36,14 +46,6 @@ builder.Services.AddSwaggerGen(configuration =>
     });
 });
 
-builder.Services.AddJwt(builder.Configuration);
-builder.Services.AddRedis(builder.Configuration);
-builder.Services.BindRoomMatchSettings(builder.Configuration);
-builder.Services.AddAuthorization();
-
-builder.Services.AddSingleton<JwtService>()
-    .AddSingleton<JwtValidator>();
-
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
@@ -71,13 +73,13 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseAuthentication();
-app.UseAuthorization();
-
 app.MapControllers();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()

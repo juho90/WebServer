@@ -1,4 +1,9 @@
-﻿using System.Net.Http.Headers;
+﻿using Grpc.Core;
+using Grpc.Net.Client;
+using Grpc.Net.Client.Web;
+using MyProtos;
+using System.Net;
+using System.Net.Http.Headers;
 using TestClient.Extensions;
 
 namespace TestClient.Commands.Handlers
@@ -31,39 +36,60 @@ namespace TestClient.Commands.Handlers
             var tasks = new List<Task>();
             for (var batch = 0; batch < count; batch++)
             {
-                var task = Enqueue(input.URL, batch * each, each, input.CancellationToken);
+                var task = Enqueue(input.HttpURI
+                    , input.GrpcURI
+                    , batch * each
+                    , each
+                    , input.CancellationToken);
                 tasks.Add(task);
             }
             await Task.WhenAll(tasks);
         }
 
-        public static async Task Enqueue(string url, int offset, int count, CancellationToken ct)
+        public static async Task Enqueue(string httpUri, string grpcUri, int offset, int count, CancellationToken ct)
         {
-            var httpClient = new HttpClient { BaseAddress = new Uri(url) };
+            // var loggerFactory = LoggerFactory.Create(b => b.AddConsole().SetMinimumLevel(LogLevel.Debug));
+            var httpClient = new HttpClient { BaseAddress = new Uri(httpUri) };
+            var httpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
+            var grpcChannel = GrpcChannel.ForAddress(grpcUri, new GrpcChannelOptions
+            {
+                HttpHandler = httpHandler,
+                HttpVersion = HttpVersion.Version11,
+                HttpVersionPolicy = HttpVersionPolicy.RequestVersionExact,
+                // LoggerFactory = loggerFactory
+            });
+            var grpcClient = new RoomMatcher.RoomMatcherClient(grpcChannel);
             for (var index = 0; index < count; index++)
             {
                 var uid = $"testuser{offset + index}";
                 var loginPayload = new { UID = uid };
                 var authDto = await httpClient.PostToAsync<AuthDto>("api/auth/test-login", loginPayload, ct);
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authDto?.AccessToken);
-                var roomIdDto = await httpClient.GetToAsync<RoomIdDto>("api/match/room-id", ct);
-                if (!string.IsNullOrEmpty(roomIdDto?.RoomId))
+                var grpcHeaders = new Metadata
                 {
-                    Console.WriteLine($"[{uid}] room-id => {roomIdDto?.RoomId}");
+                    { "Authorization", $"Bearer {authDto?.AccessToken}" }
+                };
+                var roomIdReply = await grpcClient.RoomIdAsync(new RoomIdRequest { }, grpcHeaders, cancellationToken: ct);
+                if (!string.IsNullOrEmpty(roomIdReply?.RoomId))
+                {
+                    Console.WriteLine($"[{uid}] room-id => {roomIdReply?.RoomId}");
                     continue;
                 }
-                var matchingStateDto = await httpClient.GetToAsync<MatchingStateDto>("api/match/matching-status", ct);
-                if (matchingStateDto?.IsMatching == true)
+                var matchingStateReply = await grpcClient.MatchingStatusAsync(new MatchingStatusRequest { }, grpcHeaders, cancellationToken: ct);
+                if (matchingStateReply?.IsMatched is true)
                 {
-                    Console.WriteLine($"[{uid}] matching => {matchingStateDto?.IsMatching}");
+                    Console.WriteLine($"[{uid}] matching => {matchingStateReply?.IsMatched}");
                     continue;
                 }
-                var region = "kr";
-                var capacity = 4;
-                var mmr = 300;
-                var matchingUri = $"api/match/matching?region={region}&capacity={capacity}&mmr={mmr}";
-                var enterDto = await httpClient.PostToAsync<MatchingDto>(matchingUri, null, ct);
+                var enterDto = await grpcClient.MatchingAsync(new MatchingRequest
+                {
+                    Region = "kr",
+                    Capacity = 4,
+                    Mmr = 300
+                }, grpcHeaders, cancellationToken: ct);
+
                 Console.WriteLine($"[{uid}] try => {enterDto?.Enqueued}");
+
                 await Task.Delay(50, ct);
             }
         }
