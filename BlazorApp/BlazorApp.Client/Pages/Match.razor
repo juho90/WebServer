@@ -2,9 +2,11 @@
 @using System.Net.Http.Headers
 @using System.Text.Json
 @using BlazorApp.Client.Extensions
+@using Grpc.Core
+@using MyProtos
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
-@inject HttpClient Http
+@inject RoomMatcher.RoomMatcherClient GrpcClient
 
 <PageTitle>Match</PageTitle>
 
@@ -25,17 +27,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await Http.AuthorizeAsync(JSRuntime);
-        var roomIdRes = await Http.GetToAsync<RoomIdResponse>("api/match/room-id", cts.Token);
-        if (!string.IsNullOrEmpty(roomIdRes?.RoomId))
+        var accessToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
+        var headers = new Metadata
+        {
+            { "Authorization", $"Bearer {accessToken}" }
+        };
+        var roomIdReply = await GrpcClient.RoomIdAsync(new RoomIdRequest {}, headers);
+        if (!string.IsNullOrEmpty(roomIdReply?.RoomId))
         {
             NavigationManager.NavigateTo("/room");
             return;
         }
-        var statusRes = await Http.GetToAsync<MatchingStatusResponse>("api/match/matching-status", cts.Token);
-        if (statusRes?.isMatching is true)
+        var statusReply = await GrpcClient.MatchingStatusAsync(new MatchingStatusRequest {}, headers);
+        if (statusReply?.IsMatched is true)
         {
-            if (statusRes.EnqueuedAt is long enqueuedAtUnix)
+            if (statusReply.EnqueuedAt is long enqueuedAtUnix)
             {
                 var stateJson = JsonSerializer.Serialize(new
                 {
@@ -52,12 +58,18 @@ else
 
     async Task Matching()
     {
-        var region = "kr";
-        var capacity = 4;
-        var mmr = 300;
-        var matchingUri = $"api/match/matching?region={region}&capacity={capacity}&mmr={mmr}";
-        var matchingRes = await Http.PostToAsync<MatchingResponse>(matchingUri, null, cts.Token);
-        if (matchingRes?.Enqueued is true)
+        var accessToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
+        var headers = new Metadata
+        {
+            { "Authorization", $"Bearer {accessToken}" }
+        };
+        var matchingReply = await GrpcClient.MatchingAsync(new MatchingRequest
+        {
+            Region = "kr",
+            Capacity = 4,
+            Mmr = 300
+        }, headers);
+        if (matchingReply?.Enqueued is true)
         {
             await OnInitializedAsync();
         }
@@ -67,21 +79,5 @@ else
     {
         cts.Cancel();
         cts.Dispose();
-    }
-
-    class RoomIdResponse
-    {
-        public string? RoomId { get; set; }
-    }
-
-    class MatchingStatusResponse
-    {
-        public bool isMatching { get; set; }
-        public long EnqueuedAt { get; set; }
-    }
-
-    class MatchingResponse
-    {
-        public bool Enqueued { get; set; }
     }
 }

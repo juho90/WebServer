@@ -42,8 +42,7 @@ builder.Services.BindRoomMatchSettings(builder.Configuration);
 builder.Services.AddAuthorization();
 
 builder.Services.AddSingleton<JwtService>()
-    .AddSingleton<JwtValidator>()
-    .AddScoped<RoomMatchService>();
+    .AddSingleton<JwtValidator>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

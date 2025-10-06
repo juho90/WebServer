@@ -1,0 +1,36 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "MyProtos";
+
+package roomMatch;
+
+service RoomMatcher {
+  rpc Matching (MatchingRequest) returns (MatchingReply);
+  rpc MatchingStatus (MatchingStatusRequest) returns (MatchingStatusReply);
+  rpc RoomId (RoomIdRequest) returns (RoomIdReply);
+}
+
+message MatchingRequest {
+  string region = 1;
+  int32 capacity = 2;
+  int32 mmr = 3;
+}
+
+message MatchingReply {
+  bool enqueued = 1;
+}
+
+message MatchingStatusRequest {
+}
+
+message MatchingStatusReply {
+  bool isMatched = 1;
+  int64 enqueuedAt = 2;
+}
+
+message RoomIdRequest {
+}
+
+message RoomIdReply {
+  string roomId = 1;
+}

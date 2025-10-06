@@ -16,6 +16,12 @@ builder.Services.AddSingleton<WebSocketClient>()
         var httpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
         var channel = GrpcChannel.ForAddress("http://localhost:25050", new GrpcChannelOptions { HttpHandler = httpHandler });
         return new Greeter.GreeterClient(channel);
+    })
+    .AddScoped(sp =>
+    {
+        var httpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
+        var channel = GrpcChannel.ForAddress("http://localhost:25050", new GrpcChannelOptions { HttpHandler = httpHandler });
+        return new RoomMatcher.RoomMatcherClient(channel);
     });
 
 await builder.Build().RunAsync();

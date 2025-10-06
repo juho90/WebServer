@@ -31,9 +31,9 @@ namespace CommonLibrary.Services
             _ = tran.SortedSetAddAsync(RoomMatchKeys.Queue(region, capacity), uid, mmr);
             _ = tran.HashSetAsync(RoomMatchKeys.UserMeta(uid),
             [
-                new(RoomUserMetaHashKey.MMR, mmr),
                 new(RoomUserMetaHashKey.Region, region),
                 new(RoomUserMetaHashKey.Capacity, capacity),
+                new(RoomUserMetaHashKey.MMR, mmr),
                 new(RoomUserMetaHashKey.EnqueuedAt, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
             ]);
             await tran.ExecuteAsync();

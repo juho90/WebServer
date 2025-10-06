@@ -1,9 +1,9 @@
 ﻿using Grpc.Core;
 using MyProtos;
 
-namespace GameServer.Services
+namespace GameServer.GrpcServices
 {
-    public class GreeterService() : Greeter.GreeterBase
+    public class GreeterGrpcService() : Greeter.GreeterBase
     {
         public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
         {
