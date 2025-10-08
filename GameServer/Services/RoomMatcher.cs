@@ -10,7 +10,7 @@ namespace GameServer.Services
 
         public async Task<string?> TryRoomMatch(string region, int capacity, CancellationToken ct = default)
         {
-            var matchQueue = RoomMatchKeys.Queue(region, capacity);
+            var matchQueue = RoomMatchKeys.MatchingQueue(region, capacity);
             var queueEntries = await redis.SortedSetRangeByRankWithScoresAsync(matchQueue, 0, roomMatchSettings.UserPool - 1, Order.Ascending);
             if (queueEntries.Length < capacity)
             {
@@ -29,7 +29,7 @@ namespace GameServer.Services
                     uids[index] = window[index].Element!;
                     mmrs[index] = (int)window[index].Score;
                     var uid = (string)uids[index]!;
-                    var userMata = RoomMatchKeys.UserMeta(uid);
+                    var userMata = RoomMatchKeys.MatchingUserMeta(uid);
                     var w = await redis.HashGetAsync(userMata, "enqueuedAt");
                     if (w.HasValue)
                     {
@@ -44,11 +44,12 @@ namespace GameServer.Services
                         minWait = Math.Min(minWait, 0);
                     }
                 }
-                var delta = roomMatchSettings.BaseMMR + ((int)(minWait / 1000 / 5) * roomMatchSettings.MMRPer5Sec);
                 var roomId = Guid.NewGuid().ToString();
+                var matchingMMR = roomMatchSettings.BaseMMR + ((int)(minWait / 1000 / 5) * roomMatchSettings.MMRPer5Sec);
                 var keys = new RedisKey[]
                 {
                     matchQueue,
+                    RoomMatchKeys.RoomInfo(roomId!),
                     RoomMatchKeys.RoomMembers(roomId!),
                     RoomMatchKeys.Events
                 };
@@ -56,16 +57,17 @@ namespace GameServer.Services
                 {
                     roomId.ToString(),
                     now,
-                    delta,
                     roomMatchSettings.TicketTtlMs,
-                    capacity
+                    region,
+                    capacity,
+                    matchingMMR
                 };
                 for (var index = 0; index < capacity; index++)
                 {
                     argv.Add(uids[index]);
                     argv.Add(mmrs[index]);
                 }
-                var res = await redis.ScriptEvaluateAsync(RoomMatcherLua.MatchGroup, keys, [.. argv]);
+                var res = await redis.ScriptEvaluateAsync(RoomMatcherLua.MatchingScript, keys, [.. argv]);
                 var ok = (int)res[0] == 1;
                 if (ok)
                 {

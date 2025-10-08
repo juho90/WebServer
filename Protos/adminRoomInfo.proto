@@ -1,0 +1,66 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "MyProtos";
+
+package admin;
+
+service AdminRoomInfo {
+  rpc GetRoomInfoCount (RoomInfoCountRequest) returns (RoomInfoCountReply);
+  rpc GetRoomInfo (RoomInfoRequest) returns (RoomInfoReply);
+  rpc GetMatchingQueueCount (MatchingQueueCountRequest) returns (MatchingQueueCountReply);
+  rpc GetMatchingQueue (MatchingQueueRequest) returns (MatchingQueueReply);
+}
+
+// Note: Room Info
+
+message RoomInfoCountRequest {
+}
+
+message RoomInfoCountReply {
+  int32 count = 1;
+}
+
+message RoomInfo {
+  string roomId = 1;
+  string region = 2;
+  int32 capacity = 3;
+  int32 mmr = 4;
+  int64 createdAt = 5;
+  repeated string uids = 6;
+}
+
+message RoomInfoRequest {
+  int32 offset = 1;
+  int32 count = 2;
+}
+
+message RoomInfoReply {
+  repeated RoomInfo roomInfos = 1;
+}
+
+// Note: MatchingQueue Info
+
+message MatchingQueueCountRequest {
+  string region = 1;
+  int32 capacity = 2;
+}
+
+message MatchingQueueCountReply {
+  int32 count = 1;
+}
+
+message MatchingQueue {
+  string uid = 1;
+  int64 enqueuedAt = 2;
+}
+
+message MatchingQueueRequest {
+  string region = 1;
+  int32 capacity = 2;
+  int32 offset = 3;
+  int32 count = 4;
+}
+
+message MatchingQueueReply {
+  repeated MatchingQueue matchingQueues = 1;
+}

@@ -28,8 +28,8 @@ namespace CommonLibrary.Services
                 throw new InvalidOperationException("이미 매칭이 완료된 상태입니다.");
             }
             var tran = redis.CreateTransaction();
-            _ = tran.SortedSetAddAsync(RoomMatchKeys.Queue(region, capacity), uid, mmr);
-            _ = tran.HashSetAsync(RoomMatchKeys.UserMeta(uid),
+            _ = tran.SortedSetAddAsync(RoomMatchKeys.MatchingQueue(region, capacity), uid, mmr);
+            _ = tran.HashSetAsync(RoomMatchKeys.MatchingUserMeta(uid),
             [
                 new(RoomUserMetaHashKey.Region, region),
                 new(RoomUserMetaHashKey.Capacity, capacity),
@@ -41,35 +41,19 @@ namespace CommonLibrary.Services
 
         public async Task<(bool isMatching, long enqueuedAt)> IsMatching(string uid)
         {
-            bool isMatching = false;
-            foreach (var region in settings.Regions)
-            {
-                foreach (var capacity in settings.Capacities)
-                {
-                    var queueKey = RoomMatchKeys.Queue(region, capacity);
-                    var score = await redis.SortedSetScoreAsync(queueKey, uid);
-                    if (score.HasValue)
-                    {
-                        isMatching = true;
-                        break;
-                    }
-                }
-                if (isMatching)
-                {
-                    break;
-                }
-            }
+            var matchingKey = RoomMatchKeys.MatchingUserMeta(uid);
+            var isMatching = await redis.KeyExistsAsync(matchingKey);
             var enqueuedAt = 0L;
             if (isMatching)
             {
-                enqueuedAt = (long)await redis.HashGetAsync(RoomMatchKeys.UserMeta(uid), RoomUserMetaHashKey.EnqueuedAt);
+                enqueuedAt = (long)await redis.HashGetAsync(matchingKey, RoomUserMetaHashKey.EnqueuedAt);
             }
             return (isMatching, enqueuedAt);
         }
 
         public async Task<string?> GetRoomId(string uid)
         {
-            var roomId = await redis.StringGetAsync(RoomMatchKeys.Room(uid));
+            var roomId = await redis.StringGetAsync(RoomMatchKeys.MatchedRoomId(uid));
             return roomId;
         }
     }

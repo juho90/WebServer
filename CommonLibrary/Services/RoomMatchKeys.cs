@@ -1,25 +1,30 @@
 ﻿namespace CommonLibrary.Services
 {
-    public class RoomMatchKeys
+    public static class RoomMatchKeys
     {
-        public static string Queue(string region, int capacity)
+        public static string MatchingQueue(string region, int capacity)
         {
             return $"match:q:{region}:{capacity}";
         }
 
-        public static string Room(string uid)
-        {
-            return $"match:r:{uid}";
-        }
-
-        public static string UserMeta(string uid)
+        public static string MatchingUserMeta(string uid)
         {
             return $"match:u:{uid}";
         }
 
+        public static string MatchedRoomId(string uid)
+        {
+            return $"match:r:{uid}";
+        }
+
+        public static string RoomInfo(string roomId)
+        {
+            return $"room:i:{roomId}";
+        }
+
         public static string RoomMembers(string roomId)
         {
-            return $"room:{roomId}:members";
+            return $"room:m:{roomId}";
         }
 
         public const string Events = "match:events";
