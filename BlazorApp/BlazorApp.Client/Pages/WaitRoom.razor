@@ -76,19 +76,15 @@
             {
                 var milliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 elapsedSeconds = (int)((milliseconds - enqueuedAt) / 1000);
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(OnTimerAsync);
             }
         });
         var milliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         elapsedSeconds = (int)((milliseconds - enqueuedAt) / 1000);
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected async Task OnTimerAsync()
     {
-        if (firstRender)
-        {
-            return;
-        }
         var accessToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
         var headers = new Metadata
         {

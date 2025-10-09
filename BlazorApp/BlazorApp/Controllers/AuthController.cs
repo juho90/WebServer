@@ -18,7 +18,7 @@ namespace BlazorApp.Controllers
             {
                 return BadRequest("UID은 필수입니다.");
             }
-            var token = jwtService.CreateToken(request.UID);
+            var token = jwtService.CreateToken(request.UID, "Admin");
             return Ok(new
             {
                 accessToken = token

@@ -1,6 +1,7 @@
 ﻿using CommonLibrary.Extensions;
 using CommonLibrary.Services;
 using GameServer;
+using GameServer.AdminGrpcServices;
 using GameServer.BackgroundServices;
 using GameServer.GrpcServices;
 using GameServer.Services;
@@ -47,6 +48,9 @@ app.MapGrpcService<GreeterGrpcService>()
     .EnableGrpcWeb()
     .RequireAuthorization();
 app.MapGrpcService<RoomMatchGrpcService>()
+    .EnableGrpcWeb()
+    .RequireAuthorization();
+app.MapGrpcService<AdminRoomInfoService>()
     .EnableGrpcWeb()
     .RequireAuthorization();
 

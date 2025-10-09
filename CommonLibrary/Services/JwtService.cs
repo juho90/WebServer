@@ -21,14 +21,14 @@ namespace CommonLibrary.Services
             creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         }
 
-        public string CreateToken(string username)
+        public string CreateToken(string username, string role)
         {
             var jwt = new JwtSecurityToken(
                 issuer: settings.Issuer,
                 audience: settings.Audience,
                 claims: [
                     new Claim(ClaimTypes.Name, username),
-                    new Claim(ClaimTypes.Role, "User")
+                    new Claim(ClaimTypes.Role, role)
                 ],
                 expires: DateTime.UtcNow.AddMinutes(settings.ExpiryMinutes),
                 signingCredentials: creds

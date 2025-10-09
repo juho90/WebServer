@@ -1,0 +1,52 @@
+﻿@page "/admin/room-info"
+@using BlazorApp.Client.Extensions
+@using Grpc.Core
+@using MyProtos
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject AdminRoomInfo.AdminRoomInfoClient GrpcClient
+
+<h3>Room Info</h3>
+
+@code {
+    private CancellationTokenSource cts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var loginRes = await Http.PostToAsync<LoginResponse>("/api/auth/test-login", new { uid = "Admin" }, cts.Token);
+        if (loginRes != null)
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "accessToken", loginRes.AccessToken);
+        }
+        var accessToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
+        var headers = new Metadata
+        {
+            { "Authorization", $"Bearer {accessToken}" }
+        };
+        var roomInfoCount = await GrpcClient.GetRoomInfoCountAsync(new RoomInfoCountRequest
+        {
+        }, headers);
+        var roomInfos = await GrpcClient.GetRoomInfoAsync(new RoomInfoRequest
+            {
+                Offset = 0,
+                Count = 20
+            }, headers);
+        var matchingQueueCount = await GrpcClient.GetMatchingQueueCountAsync(new MatchingQueueCountRequest
+        {
+            Region = "kr",
+            Capacity = 4
+        }, headers);
+        var matchingQueues = await GrpcClient.GetMatchingQueueAsync(new MatchingQueueRequest
+        {
+            Region = "kr",
+            Capacity = 4,
+            Offset = 0,
+            Count = 20
+        }, headers);
+    }
+
+    class LoginResponse
+    {
+        public string? AccessToken { get; set; }
+    }
+}
