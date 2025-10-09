@@ -1,4 +1,5 @@
 ﻿@page "/wait-room"
+@using BlazorApp.Client.Extensions
 @using BlazorApp.Client.Services
 @using Flatbuffers
 @using System.Text.Json
@@ -18,7 +19,7 @@
 {
     <p>@roomId</p>
 }
-<p>대기 시간: @FormatElapsed(elapsedSeconds)</p>
+<p>대기 시간: @elapsedSeconds.FormatElapsed()</p>
 
 @code {
     private PeriodicTimer? timer;
@@ -26,13 +27,6 @@
     private long enqueuedAt = 0;
     private int elapsedSeconds = 0;
     private CancellationTokenSource cts = new();
-
-    private string FormatElapsed(int seconds)
-    {
-        int min = seconds / 60;
-        int sec = seconds % 60;
-        return $"{min:D2}분 {sec:D2}초";
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -74,13 +68,11 @@
         {
             while (await timer.WaitForNextTickAsync(cts.Token))
             {
-                var milliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                elapsedSeconds = (int)((milliseconds - enqueuedAt) / 1000);
+                elapsedSeconds = enqueuedAt.ToElapsedSeconds();
                 await InvokeAsync(OnTimerAsync);
             }
         });
-        var milliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        elapsedSeconds = (int)((milliseconds - enqueuedAt) / 1000);
+        elapsedSeconds = enqueuedAt.ToElapsedSeconds();
     }
 
     protected async Task OnTimerAsync()
@@ -90,7 +82,7 @@
         {
             { "Authorization", $"Bearer {accessToken}" }
         };
-        var roomIdReply = await GrpcClient.RoomIdAsync(new RoomIdRequest { }, headers);
+        var roomIdReply = await GrpcClient.RoomIdAsync(new RoomIdRequest(), headers);
         roomId = roomIdReply?.RoomId;
         if(string.IsNullOrEmpty(roomId))
         {

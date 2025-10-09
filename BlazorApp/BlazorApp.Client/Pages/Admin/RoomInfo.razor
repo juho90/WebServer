@@ -1,4 +1,5 @@
 ﻿@page "/admin/room-info"
+@using BlazorApp.Client.Components
 @using BlazorApp.Client.Extensions
 @using Grpc.Core
 @using MyProtos
@@ -6,9 +7,97 @@
 @inject HttpClient Http
 @inject AdminRoomInfo.AdminRoomInfoClient GrpcClient
 
+<h3>MatchingQueue Info</h3>
+
+@if(string.IsNullOrEmpty(accessToken))
+{
+    <div>
+        Loading ...
+    </div>
+}
+else
+{
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <th>UID</th>
+                    <th>EnqueuedAt</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var matchingQueue in matchingQueueReply?.MatchingQueues ?? [])
+                {
+                    <tr>
+                        <td>@matchingQueue.Uid</td>
+                        <td>@matchingQueue.EnqueuedAt.ToElapsedSeconds().FormatElapsed()</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <Pagination
+            Current="matchingQueuePage"
+            Total="matchingQueuePages"
+            OnChanged="LoadMatchingQueueAsync"
+        />
+    </div>
+}
+
 <h3>Room Info</h3>
 
+@if (string.IsNullOrEmpty(accessToken))
+{
+    <div>
+        Loading ...
+    </div>
+}
+else
+{
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <th>RoomId</th>
+                    <th>Region</th>
+                    <th>Capacity</th>
+                    <th>MMR</th>
+                    <th>Players</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var room in roomInfoReply?.RoomInfos ?? [])
+                {
+                    <tr>
+                        <td>@room.RoomId</td>
+                        <td>@room.Region</td>
+                        <td>@room.Capacity</td>
+                        <td>@room.Mmr</td>
+                        <td>@string.Join("\n", room.Uids)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <Pagination Current="roomInfoPage"
+                    Total="roomInfoPages"
+                    OnChanged="LoadRoomInfoAsync" />
+    </div>
+}
+
+<div>
+    <button @onclick="RefreshAsync">새로고침</button>
+</div>
+
 @code {
+    private const int PageSize = 20;
+    private string? accessToken = null;
+    private MatchingQueueReply? matchingQueueReply = null;
+    private int matchingQueueCount = 0;
+    private int matchingQueuePage = 1;
+    private int matchingQueuePages = 0;
+    private RoomInfoReply? roomInfoReply = null;
+    private int roomInfoCount = 0;
+    private int roomInfoPage = 1;
+    private int roomInfoPages = 0;
     private CancellationTokenSource cts = new();
 
     protected override async Task OnInitializedAsync()
@@ -17,32 +106,54 @@
         if (loginRes != null)
         {
             await JSRuntime.InvokeVoidAsync("localStorage.setItem", "accessToken", loginRes.AccessToken);
+            accessToken = loginRes.AccessToken;
         }
-        var accessToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
+    }
+
+    private async Task RefreshAsync()
+    {
+        await LoadMatchingQueueAsync(matchingQueuePage);
+        await LoadRoomInfoAsync(roomInfoPage);
+    }
+
+    private async Task LoadMatchingQueueAsync(int page)
+    {
         var headers = new Metadata
         {
             { "Authorization", $"Bearer {accessToken}" }
         };
-        var roomInfoCount = await GrpcClient.GetRoomInfoCountAsync(new RoomInfoCountRequest
-        {
-        }, headers);
-        var roomInfos = await GrpcClient.GetRoomInfoAsync(new RoomInfoRequest
-            {
-                Offset = 0,
-                Count = 20
-            }, headers);
-        var matchingQueueCount = await GrpcClient.GetMatchingQueueCountAsync(new MatchingQueueCountRequest
+        var matchingQueueCountReply = await GrpcClient.GetMatchingQueueCountAsync(new MatchingQueueCountRequest
         {
             Region = "kr",
             Capacity = 4
         }, headers);
-        var matchingQueues = await GrpcClient.GetMatchingQueueAsync(new MatchingQueueRequest
+        matchingQueueCount = matchingQueueCountReply.Count;
+        matchingQueueReply = await GrpcClient.GetMatchingQueueAsync(new MatchingQueueRequest
         {
             Region = "kr",
             Capacity = 4,
-            Offset = 0,
-            Count = 20
+            Offset = (page - 1) * PageSize,
+            Count = PageSize
         }, headers);
+        matchingQueuePage = page;
+        matchingQueuePages = (matchingQueueCount + PageSize - 1) / PageSize;
+    }
+
+    private async Task LoadRoomInfoAsync(int page)
+    {
+        var headers = new Metadata
+        {
+            { "Authorization", $"Bearer {accessToken}" }
+        };
+        var roomInfoCountReply = await GrpcClient.GetRoomInfoCountAsync(new RoomInfoCountRequest(), headers);
+        roomInfoCount = roomInfoCountReply.Count;
+        roomInfoReply = await GrpcClient.GetRoomInfoAsync(new RoomInfoRequest
+        {
+            Offset = (page - 1) * PageSize,
+            Count = PageSize
+        }, headers);
+        roomInfoPage = page;
+        roomInfoPages = (roomInfoCount + PageSize - 1) / PageSize;
     }
 
     class LoginResponse

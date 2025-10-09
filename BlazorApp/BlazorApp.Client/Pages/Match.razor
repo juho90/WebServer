@@ -32,13 +32,13 @@ else
         {
             { "Authorization", $"Bearer {accessToken}" }
         };
-        var roomIdReply = await GrpcClient.RoomIdAsync(new RoomIdRequest { }, headers);
+        var roomIdReply = await GrpcClient.RoomIdAsync(new RoomIdRequest(), headers);
         if (!string.IsNullOrEmpty(roomIdReply?.RoomId))
         {
             NavigationManager.NavigateTo("/room");
             return;
         }
-        var statusReply = await GrpcClient.MatchingStatusAsync(new MatchingStatusRequest { }, headers);
+        var statusReply = await GrpcClient.MatchingStatusAsync(new MatchingStatusRequest(), headers);
         if (statusReply?.IsMatched is true)
         {
             if (statusReply.EnqueuedAt is long enqueuedAtUnix)
