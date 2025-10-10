@@ -41,14 +41,17 @@ namespace CommonLibrary.Services
 
         public async Task<(bool isMatching, long enqueuedAt)> IsMatching(string uid)
         {
-            var matchingKey = RoomMatchKeys.MatchingUserMeta(uid);
-            var isMatching = await redis.KeyExistsAsync(matchingKey);
-            var enqueuedAt = 0L;
-            if (isMatching)
+            var userMetaKey = RoomMatchKeys.MatchingUserMeta(uid);
+            var userMeta = await redis.HashGetAllAsync(userMetaKey);
+            if (userMeta.Length != 4)
             {
-                enqueuedAt = (long)await redis.HashGetAsync(matchingKey, RoomUserMetaHashKey.EnqueuedAt);
+                return (false, 0);
             }
-            return (isMatching, enqueuedAt);
+            var region = (string)userMeta.First(x => x.Name == RoomUserMetaHashKey.Region).Value!;
+            var capacity = (int)userMeta.First(x => x.Name == RoomUserMetaHashKey.Capacity).Value!;
+            var mmr = await redis.SortedSetRankAsync(RoomMatchKeys.MatchingQueue(region, capacity), uid);
+            var enqueuedAt = (long)userMeta.First(x => x.Name == RoomUserMetaHashKey.EnqueuedAt).Value!;
+            return (mmr is not null, enqueuedAt);
         }
 
         public async Task<string?> GetRoomId(string uid)

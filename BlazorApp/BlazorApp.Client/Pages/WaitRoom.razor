@@ -19,17 +19,23 @@
 {
     <p>@roomId</p>
 }
-<p>대기 시간: @elapsedSeconds.FormatElapsed()</p>
+<p>대기 시간: @enqueuedAt.ToElapsedSeconds().FormatElapsed()</p>
 
 @code {
-    private PeriodicTimer? timer;
+    private string? accessToken = string.Empty;
     private string? roomId = string.Empty;
     private long enqueuedAt = 0;
-    private int elapsedSeconds = 0;
+    private PeriodicTimer? timer;
     private CancellationTokenSource cts = new();
 
     protected override async Task OnInitializedAsync()
     {
+        accessToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
+        if (string.IsNullOrEmpty(accessToken))
+        {
+            NavigationManager.NavigateTo("/home");
+            return;
+        };
         await FlatbufferClient.ConnectAsync("ws://localhost:25050/ws");
         await FlatbufferClient.SendAuthenticationAsync();
         _ = Task.Run(async () =>
@@ -57,10 +63,10 @@
                 }
             }
         });
-        var stateJson = NavigationManager.HistoryEntryState;
-        if (!string.IsNullOrEmpty(stateJson))
+        var parameterJson = NavigationManager.HistoryEntryState;
+        if (!string.IsNullOrEmpty(parameterJson))
         {
-            var stateModel = JsonSerializer.Deserialize<StateModel>(stateJson);
+            var stateModel = JsonSerializer.Deserialize<StateModel>(parameterJson);
             enqueuedAt = stateModel?.EnqueuedAt ?? 0;
         }
         timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
@@ -68,16 +74,14 @@
         {
             while (await timer.WaitForNextTickAsync(cts.Token))
             {
-                elapsedSeconds = enqueuedAt.ToElapsedSeconds();
                 await InvokeAsync(OnTimerAsync);
+                await InvokeAsync(StateHasChanged);
             }
         });
-        elapsedSeconds = enqueuedAt.ToElapsedSeconds();
     }
 
     protected async Task OnTimerAsync()
     {
-        var accessToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
         var headers = new Metadata
         {
             { "Authorization", $"Bearer {accessToken}" }

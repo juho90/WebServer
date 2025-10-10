@@ -29,11 +29,11 @@ namespace GameServer.Services
                     uids[index] = window[index].Element!;
                     mmrs[index] = (int)window[index].Score;
                     var uid = (string)uids[index]!;
-                    var userMata = RoomMatchKeys.MatchingUserMeta(uid);
-                    var w = await redis.HashGetAsync(userMata, "enqueuedAt");
-                    if (w.HasValue)
+                    var userMataKey = RoomMatchKeys.MatchingUserMeta(uid);
+                    var enqueueAt = await redis.HashGetAsync(userMataKey, RoomUserMetaHashKey.EnqueuedAt);
+                    if (enqueueAt.HasValue)
                     {
-                        var wait = now - (long)w;
+                        var wait = now - (long)enqueueAt;
                         if (wait < minWait)
                         {
                             minWait = wait;
