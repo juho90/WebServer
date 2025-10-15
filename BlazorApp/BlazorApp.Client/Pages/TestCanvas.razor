@@ -1,0 +1,54 @@
+﻿@page "/test-canvas"
+@using BlazorApp.Client.Services
+@inject CanvasService CanvasService
+
+<PageTitle>TestCanvas</PageTitle>
+
+<canvas id="myCanvas" width="400" height="400" style="border:1px solid #ccc;" />
+
+@code {
+    private PeriodicTimer? timer;
+    private CancellationTokenSource cts = new();
+
+    private Ball[] balls = new Ball[]
+    {
+        new Ball { X = 50, Y = 50, Radius = 3, Color = "red" },
+        new Ball { X = 150, Y = 80, Radius = 3, Color = "green" },
+        new Ball { X = 250, Y = 120, Radius = 3, Color = "blue" }
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+        await CanvasService.InitializeAsync("myCanvas");
+        timer = new PeriodicTimer(TimeSpan.FromMilliseconds(60));
+        _ = Task.Run(async () =>
+        {
+            while (await timer.WaitForNextTickAsync(cts.Token))
+            {
+                await InvokeAsync(OnTimerAsync);
+                await InvokeAsync(StateHasChanged);
+            }
+        });
+    }
+
+    private async Task OnTimerAsync()
+    {
+        await CanvasService.ClearAsync();
+        foreach(var ball in balls)
+        {
+            await CanvasService.DrawCircleAsync(ball.X, ball.Y, ball.Radius, ball.Color ?? "black");
+        }
+    }
+
+    class Ball
+    {
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Radius { get; set; }
+        public string? Color { get; set; }
+    }
+}

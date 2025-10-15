@@ -30,4 +30,6 @@ builder.Services.AddSingleton<WebSocketClient>()
         return new AdminRoomInfo.AdminRoomInfoClient(channel);
     });
 
+builder.Services.AddScoped<CanvasService>();
+
 await builder.Build().RunAsync();
