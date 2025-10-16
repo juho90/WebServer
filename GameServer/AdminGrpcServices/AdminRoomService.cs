@@ -7,11 +7,11 @@ using StackExchange.Redis;
 namespace GameServer.AdminGrpcServices
 {
     [Authorize(Roles = "Admin")]
-    public class AdminRoomInfoService(IConnectionMultiplexer cm) : AdminRoomInfo.AdminRoomInfoBase
+    public class AdminRoomService(IConnectionMultiplexer cm) : AdminRoom.AdminRoomBase
     {
         private readonly IDatabase redis = cm.GetDatabase();
 
-        public override async Task<MatchingQueueCountReply> GetMatchingQueueCount(MatchingQueueCountRequest request, ServerCallContext context)
+        public override async Task<MatchingQueueCountReply> MatchingQueueCount(MatchingQueueCountRequest request, ServerCallContext context)
         {
             var queueKey = AdminRoomInfoKeys.MatchingQueueCount(request.Region, request.Capacity);
             var count = (int)await redis.SortedSetLengthAsync(queueKey);
@@ -21,7 +21,7 @@ namespace GameServer.AdminGrpcServices
             };
         }
 
-        public override async Task<MatchingQueueReply> GetMatchingQueue(MatchingQueueRequest request, ServerCallContext context)
+        public override async Task<MatchingQueueReply> MatchingQueue(MatchingQueueRequest request, ServerCallContext context)
         {
             var queueKey = AdminRoomInfoKeys.MatchingQueueCount(request.Region, request.Capacity);
             var uids = await redis.SortedSetRangeByRankAsync(queueKey, request.Offset, request.Offset + request.Count - 1, Order.Ascending);
@@ -42,7 +42,7 @@ namespace GameServer.AdminGrpcServices
             return reply;
         }
 
-        public override async Task<MatchingUserCountReply> GetMatchingUserCount(MatchingUserCountRequest request, ServerCallContext context)
+        public override async Task<MatchingUserCountReply> MatchingUserCount(MatchingUserCountRequest request, ServerCallContext context)
         {
             var endpoint = redis.Multiplexer.GetEndPoints()[0];
             var server = redis.Multiplexer.GetServer(endpoint);
@@ -53,7 +53,7 @@ namespace GameServer.AdminGrpcServices
             });
         }
 
-        public override async Task<MatchingUserReply> GetMatchingUser(MatchingUserRequest request, ServerCallContext context)
+        public override async Task<MatchingUsersReply> MatchingUsers(MatchingUsersRequest request, ServerCallContext context)
         {
             var endpoint = redis.Multiplexer.GetEndPoints()[0];
             var server = redis.Multiplexer.GetServer(endpoint);
@@ -61,7 +61,7 @@ namespace GameServer.AdminGrpcServices
                 .Skip(request.Offset)
                 .Take(request.Count)
                 .ToArray();
-            var reply = new MatchingUserReply
+            var reply = new MatchingUsersReply
             {
                 Region = request.Region,
                 Capacity = request.Capacity
@@ -79,7 +79,7 @@ namespace GameServer.AdminGrpcServices
             return reply;
         }
 
-        public override async Task<MatchingRoomCountReply> GetMatchingRoomCount(MatchingRoomCountRequest request, ServerCallContext context)
+        public override async Task<MatchingRoomCountReply> MatchingRoomCount(MatchingRoomCountRequest request, ServerCallContext context)
         {
             var endpoint = redis.Multiplexer.GetEndPoints()[0];
             var server = redis.Multiplexer.GetServer(endpoint);
@@ -90,7 +90,7 @@ namespace GameServer.AdminGrpcServices
             });
         }
 
-        public override async Task<MatchingRoomReply> GetMatchingRoom(MatchingRoomRequest request, ServerCallContext context)
+        public override async Task<MatchingRoomsReply> MatchingRooms(MatchingRoomsRequest request, ServerCallContext context)
         {
             var endpoint = redis.Multiplexer.GetEndPoints()[0];
             var server = redis.Multiplexer.GetServer(endpoint);
@@ -98,7 +98,7 @@ namespace GameServer.AdminGrpcServices
                 .Skip(request.Offset)
                 .Take(request.Count)
                 .ToArray();
-            var reply = new MatchingRoomReply
+            var reply = new MatchingRoomsReply
             {
                 Region = request.Region,
                 Capacity = request.Capacity
@@ -118,22 +118,22 @@ namespace GameServer.AdminGrpcServices
             return reply;
         }
 
-        public override async Task<RoomInfoCountReply> GetRoomInfoCount(RoomInfoCountRequest request, ServerCallContext context)
+        public override async Task<RoomCountReply> RoomCount(RoomCountRequest request, ServerCallContext context)
         {
             var endpoint = redis.Multiplexer.GetEndPoints()[0];
             var server = redis.Multiplexer.GetServer(endpoint);
             var roomKeys = server.Keys(pattern: AdminRoomInfoKeys.RoomPattern());
-            return await Task.FromResult(new RoomInfoCountReply
+            return await Task.FromResult(new RoomCountReply
             {
                 Count = roomKeys.Count()
             });
         }
 
-        public override async Task<RoomInfoReply> GetRoomInfo(RoomInfoRequest request, ServerCallContext context)
+        public override async Task<RoomsReply> Rooms(RoomsRequest request, ServerCallContext context)
         {
             var endpoint = redis.Multiplexer.GetEndPoints()[0];
             var server = redis.Multiplexer.GetServer(endpoint);
-            var roomInfoReply = new RoomInfoReply();
+            var roomInfoReply = new RoomsReply();
             var roomKeys = server.Keys(pattern: AdminRoomInfoKeys.RoomPattern())
                 .Skip(request.Offset)
                 .Take(request.Count)
@@ -141,13 +141,13 @@ namespace GameServer.AdminGrpcServices
             foreach (var roomKey in roomKeys)
             {
                 var json = await redis.StringGetAsync(roomKey);
-                var roomInfo = RoomInfo.Parser.ParseJson(json);
+                var roomInfo = MyProtos.Room.Parser.ParseJson(json);
                 var roomMembers = await redis.SetMembersAsync(AdminRoomInfoKeys.RoomMembers(roomInfo.RoomId));
                 foreach (var roomMember in roomMembers)
                 {
                     roomInfo.Uids.Add(roomMember);
                 }
-                roomInfoReply.RoomInfos.Add(roomInfo);
+                roomInfoReply.Rooms.Add(roomInfo);
             }
             return roomInfoReply;
         }

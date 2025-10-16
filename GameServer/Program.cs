@@ -50,7 +50,7 @@ app.MapGrpcService<GreeterGrpcService>()
 app.MapGrpcService<RoomMatchGrpcService>()
     .EnableGrpcWeb()
     .RequireAuthorization();
-app.MapGrpcService<AdminRoomInfoService>()
+app.MapGrpcService<AdminRoomService>()
     .EnableGrpcWeb()
     .RequireAuthorization();
 

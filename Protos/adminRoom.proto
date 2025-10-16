@@ -4,15 +4,15 @@ option csharp_namespace = "MyProtos";
 
 package admin;
 
-service AdminRoomInfo {
-  rpc GetMatchingQueueCount (MatchingQueueCountRequest) returns (MatchingQueueCountReply);
-  rpc GetMatchingQueue (MatchingQueueRequest) returns (MatchingQueueReply);
-  rpc GetMatchingUserCount (MatchingUserCountRequest) returns (MatchingUserCountReply);
-  rpc GetMatchingUser (MatchingUserRequest) returns (MatchingUserReply);
-  rpc GetMatchingRoomCount (MatchingRoomCountRequest) returns (MatchingRoomCountReply);
-  rpc GetMatchingRoom (MatchingRoomRequest) returns (MatchingRoomReply);
-  rpc GetRoomInfoCount (RoomInfoCountRequest) returns (RoomInfoCountReply);
-  rpc GetRoomInfo (RoomInfoRequest) returns (RoomInfoReply);
+service AdminRoom {
+  rpc MatchingQueueCount (MatchingQueueCountRequest) returns (MatchingQueueCountReply);
+  rpc MatchingQueue (MatchingQueueRequest) returns (MatchingQueueReply);
+  rpc MatchingUserCount (MatchingUserCountRequest) returns (MatchingUserCountReply);
+  rpc MatchingUsers (MatchingUsersRequest) returns (MatchingUsersReply);
+  rpc MatchingRoomCount (MatchingRoomCountRequest) returns (MatchingRoomCountReply);
+  rpc MatchingRooms (MatchingRoomsRequest) returns (MatchingRoomsReply);
+  rpc RoomCount (RoomCountRequest) returns (RoomCountReply);
+  rpc Rooms (RoomsRequest) returns (RoomsReply);
 }
 
 // Note: MatchingQueue Info
@@ -60,14 +60,14 @@ message MatchingUser {
   int64 enqueuedAt = 2;
 }
 
-message MatchingUserRequest {
+message MatchingUsersRequest {
   string region = 1;
   int32 capacity = 2;
   int32 offset = 3;
   int32 count = 4;
 }
 
-message MatchingUserReply {
+message MatchingUsersReply {
   string region = 1;
   int32 capacity = 2;
   repeated MatchingUser matchingUsers = 3;
@@ -90,14 +90,14 @@ message MatchingRoom {
   int64 enqueuedAt = 3;
 }
 
-message MatchingRoomRequest {
+message MatchingRoomsRequest {
   string region = 1;
   int32 capacity = 2;
   int32 offset = 3;
   int32 count = 4;
 }
 
-message MatchingRoomReply {
+message MatchingRoomsReply {
   string region = 1;
   int32 capacity = 2;
   repeated MatchingRoom matchingRooms = 3;
@@ -105,14 +105,14 @@ message MatchingRoomReply {
 
 // Note: Room Info
 
-message RoomInfoCountRequest {
+message RoomCountRequest {
 }
 
-message RoomInfoCountReply {
+message RoomCountReply {
   int32 count = 1;
 }
 
-message RoomInfo {
+message Room {
   string roomId = 1;
   string region = 2;
   int32 capacity = 3;
@@ -121,11 +121,11 @@ message RoomInfo {
   repeated string uids = 6;
 }
 
-message RoomInfoRequest {
+message RoomsRequest {
   int32 offset = 1;
   int32 count = 2;
 }
 
-message RoomInfoReply {
-  repeated RoomInfo roomInfos = 1;
+message RoomsReply {
+  repeated Room rooms = 1;
 }

@@ -27,7 +27,7 @@ builder.Services.AddSingleton<WebSocketClient>()
     {
         var httpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
         var channel = GrpcChannel.ForAddress("http://localhost:25050", new GrpcChannelOptions { HttpHandler = httpHandler });
-        return new AdminRoomInfo.AdminRoomInfoClient(channel);
+        return new AdminRoom.AdminRoomClient(channel);
     });
 
 builder.Services.AddScoped<CanvasService>();

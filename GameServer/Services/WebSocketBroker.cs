@@ -12,7 +12,7 @@ namespace GameServer.Services
             var roomMembers = await roomMatcher.GetRoomMembers(roomId);
             foreach (var roomMember in roomMembers)
             {
-                WebSocketBroadcastManager.BroadcastAsync(roomMember, roomCreateBuffer);
+                WebSocketBroadcastManager.Broadcast(roomMember, roomCreateBuffer);
             }
         }
     }

@@ -1,0 +1,10 @@
+﻿namespace Cellverse;
+
+table CellSpawn {
+  id:int32;
+  x:float;
+  y:float;
+  size:int32;
+}
+
+root_type CellSpawn;

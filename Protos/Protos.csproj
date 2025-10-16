@@ -18,7 +18,8 @@
 	<ItemGroup>
 		<Protobuf Include="greet.proto" GrpcServices="Server;Client" />
 		<Protobuf Include="roomMatch.proto" GrpcServices="Server;Client" />
-		<Protobuf Include="adminRoomInfo.proto" GrpcServices="Server;Client" />
+		<Protobuf Include="adminRoom.proto" GrpcServices="Server;Client" />
+		<Protobuf Include="cellverse.proto" GrpcServices="Server;Client" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -28,7 +29,10 @@
 		<None Update="roomMatch.proto">
 			<GrpcServices>Server;Client</GrpcServices>
 		</None>
-		<None Update="adminRoomInfo.proto">
+		<None Update="adminRoom.proto">
+			<GrpcServices>Server;Client</GrpcServices>
+		</None>
+		<None Update="cellverse.proto">
 			<GrpcServices>Server;Client</GrpcServices>
 		</None>
 	</ItemGroup>

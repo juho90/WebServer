@@ -1,6 +1,8 @@
 ﻿@page "/test-canvas"
 @using BlazorApp.Client.Services
+@using Flatbuffers
 @inject CanvasService CanvasService
+@inject FlatbufferClient FlatbufferClient
 
 <PageTitle>TestCanvas</PageTitle>
 
@@ -10,12 +12,7 @@
     private PeriodicTimer? timer;
     private CancellationTokenSource cts = new();
 
-    private Ball[] balls = new Ball[]
-    {
-        new Ball { X = 50, Y = 50, Radius = 3, Color = "red" },
-        new Ball { X = 150, Y = 80, Radius = 3, Color = "green" },
-        new Ball { X = 250, Y = 120, Radius = 3, Color = "blue" }
-    };
+    private List<Ball> balls = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -24,6 +21,21 @@
             return;
         }
         await CanvasService.InitializeAsync("myCanvas");
+        _ = Task.Run(async () =>
+        {
+            while (!cts.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    await InvokeAsync(OnFlatbufferAsync);
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+            }
+        });
         timer = new PeriodicTimer(TimeSpan.FromMilliseconds(60));
         _ = Task.Run(async () =>
         {
@@ -35,20 +47,49 @@
         });
     }
 
+    protected async Task OnFlatbufferAsync()
+    {
+        var data = await FlatbufferClient.ReceiveAsync(cts.Token);
+        var cellverseId = CellverseUtil.GetCellverseId(data);
+        switch (cellverseId)
+        {
+            case CellverseId.CellSpawn:
+                var cellSpawn = CellverseUtil.DeserializeCellSpawn(data);
+                balls.Add(new()
+                {
+                    Id = cellSpawn.Id,
+                    X = cellSpawn.X,
+                    Y = cellSpawn.Y,
+                    Size = cellSpawn.Size
+                });
+                break;
+            default:
+                break;
+        }
+    }
+
     private async Task OnTimerAsync()
     {
         await CanvasService.ClearAsync();
         foreach(var ball in balls)
         {
-            await CanvasService.DrawCircleAsync(ball.X, ball.Y, ball.Radius, ball.Color ?? "black");
+            await CanvasService.DrawCircleAsync(ball.X, ball.Y, ball.Size, ball.Color ?? "black");
         }
+    }
+
+    public void Dispose()
+    {
+        cts.Cancel();
+        cts.Dispose();
+        timer?.Dispose();
     }
 
     class Ball
     {
+        public int Id { get; set; }
         public float X { get; set; }
         public float Y { get; set; }
-        public float Radius { get; set; }
+        public float Size { get; set; }
         public string? Color { get; set; }
     }
 }

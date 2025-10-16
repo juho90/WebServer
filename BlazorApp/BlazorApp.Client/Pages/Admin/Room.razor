@@ -5,7 +5,7 @@
 @using MyProtos
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
-@inject AdminRoomInfo.AdminRoomInfoClient GrpcClient
+@inject AdminRoom.AdminRoomClient GrpcClient
 
 <h3>MatchingQueue Info</h3>
 
@@ -133,7 +133,7 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var room in roomInfoReply?.RoomInfos ?? [])
+                @foreach (var room in roomsReply?.Rooms ?? [])
                 {
                     <tr>
                         <td>@room.RoomId</td>
@@ -145,8 +145,8 @@ else
                 }
             </tbody>
         </table>
-        <Pagination Current="roomInfoPage"
-                    Total="roomInfoPages"
+        <Pagination Current="roomsPage"
+                    Total="roomsPages"
                     OnChanged="LoadRoomInfoAsync" />
     </div>
 }
@@ -163,18 +163,18 @@ else
     private int matchingQueueCount = 0;
     private int matchingQueuePage = 1;
     private int matchingQueuePages = 0;
-    private MatchingUserReply? matchingUserReply = null;
+    private MatchingUsersReply? matchingUserReply = null;
     private int matchingUserCount = 0;
     private int matchingUserPage = 1;
     private int matchingUserPages = 0;
-    private MatchingRoomReply? matchingRoomReply = null;
+    private MatchingRoomsReply? matchingRoomReply = null;
     private int matchingRoomCount = 0;
     private int matchingRoomPage = 1;
     private int matchingRoomPages = 0;
-    private RoomInfoReply? roomInfoReply = null;
-    private int roomInfoCount = 0;
-    private int roomInfoPage = 1;
-    private int roomInfoPages = 0;
+    private RoomsReply? roomsReply = null;
+    private int roomCount = 0;
+    private int roomsPage = 1;
+    private int roomsPages = 0;
     private CancellationTokenSource cts = new();
 
     protected override async Task OnInitializedAsync()
@@ -192,7 +192,7 @@ else
         await LoadMatchingQueueAsync(matchingQueuePage);
         await LoadMatchingUserAsync(matchingUserPage);
         await LoadMatchingRoomAsync(matchingRoomPage);
-        await LoadRoomInfoAsync(roomInfoPage);
+        await LoadRoomInfoAsync(roomsPage);
     }
 
     private async Task LoadMatchingQueueAsync(int page)
@@ -201,13 +201,13 @@ else
         {
             { "Authorization", $"Bearer {accessToken}" }
         };
-        var matchingQueueCountReply = await GrpcClient.GetMatchingQueueCountAsync(new MatchingQueueCountRequest
+        var matchingQueueCountReply = await GrpcClient.MatchingQueueCountAsync(new MatchingQueueCountRequest
         {
             Region = "kr",
             Capacity = 4
         }, headers);
         matchingQueueCount = matchingQueueCountReply.Count;
-        matchingQueueReply = await GrpcClient.GetMatchingQueueAsync(new MatchingQueueRequest
+        matchingQueueReply = await GrpcClient.MatchingQueueAsync(new MatchingQueueRequest
         {
             Region = "kr",
             Capacity = 4,
@@ -224,13 +224,13 @@ else
         {
             { "Authorization", $"Bearer {accessToken}" }
         };
-        var matchingUserCountReply = await GrpcClient.GetMatchingUserCountAsync(new MatchingUserCountRequest
+        var matchingUserCountReply = await GrpcClient.MatchingUserCountAsync(new MatchingUserCountRequest
         {
             Region = "kr",
             Capacity = 4
         }, headers);
         matchingUserCount = matchingUserCountReply.Count;
-        matchingUserReply = await GrpcClient.GetMatchingUserAsync(new MatchingUserRequest
+        matchingUserReply = await GrpcClient.MatchingUsersAsync(new MatchingUsersRequest
         {
             Region = "kr",
             Capacity = 4,
@@ -248,13 +248,13 @@ else
         {
             { "Authorization", $"Bearer {accessToken}" }
         };
-        var matchingRoomCountReply = await GrpcClient.GetMatchingRoomCountAsync(new MatchingRoomCountRequest
+        var matchingRoomCountReply = await GrpcClient.MatchingRoomCountAsync(new MatchingRoomCountRequest
         {
             Region = "kr",
             Capacity = 4
         }, headers);
         matchingRoomCount = matchingRoomCountReply.Count;
-        matchingRoomReply = await GrpcClient.GetMatchingRoomAsync(new MatchingRoomRequest
+        matchingRoomReply = await GrpcClient.MatchingRoomsAsync(new MatchingRoomsRequest
         {
             Region = "kr",
             Capacity = 4,
@@ -271,15 +271,15 @@ else
         {
             { "Authorization", $"Bearer {accessToken}" }
         };
-        var roomInfoCountReply = await GrpcClient.GetRoomInfoCountAsync(new RoomInfoCountRequest(), headers);
-        roomInfoCount = roomInfoCountReply.Count;
-        roomInfoReply = await GrpcClient.GetRoomInfoAsync(new RoomInfoRequest
+        var roomInfoCountReply = await GrpcClient.RoomCountAsync(new RoomCountRequest(), headers);
+        roomCount = roomInfoCountReply.Count;
+        roomsReply = await GrpcClient.RoomsAsync(new RoomsRequest
         {
             Offset = (page - 1) * PageSize,
             Count = PageSize
         }, headers);
-        roomInfoPage = page;
-        roomInfoPages = (roomInfoCount + PageSize - 1) / PageSize;
+        roomsPage = page;
+        roomsPages = (roomCount + PageSize - 1) / PageSize;
     }
 
     class LoginResponse

@@ -1,0 +1,33 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "MyProtos";
+
+package Cellverse;
+
+service Cellverse {
+  rpc Cells (CellsRequest) returns (CellsReply);
+  rpc EnterCellverse (EnterCellverseRequest) returns (EnterCellverseReply);
+}
+
+message Cell {
+  int32 id = 1;
+  float x = 2;
+  float y = 3;
+  int32 size = 4;
+}
+
+message CellsRequest {
+  string roomId = 1;
+}
+
+message CellsReply {
+  string roomId = 1;
+  repeated Cell cells = 2;
+}
+
+message EnterCellverseRequest {
+  string roomId = 1;
+}
+
+message EnterCellverseReply {
+}

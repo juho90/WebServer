@@ -18,13 +18,20 @@ namespace GameServer.Services
             webSocketPersonal.TryRemove(uid, out _);
         }
 
-        public static void BroadcastAsync(string uid, byte[] data)
+        public static void Broadcast(string uid, byte[] data)
         {
             if (webSocketPersonal.TryGetValue(uid, out var webSocket) is false)
             {
                 return;
             }
             webSocket.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, CancellationToken.None);
+        }
+
+        public static List<WebSocket> GetGroup(string groupId)
+        {
+            return webSocketGroups.TryGetValue(groupId, out var webSocketGroup)
+                ? webSocketGroup
+                : throw new Exception($"Group not found: {groupId}");
         }
 
         public static void AddGroup(string groupId, WebSocket webSocket)
@@ -48,12 +55,17 @@ namespace GameServer.Services
             }
         }
 
-        public static void BroadcastGroupAsync(string roomId, byte[] data)
+        public static void BroadcastGroup(string roomId, byte[] data)
         {
             if (webSocketGroups.TryGetValue(roomId, out var webSocketGroup) is false)
             {
                 return;
             }
+            BroadcastGroup(webSocketGroup, data);
+        }
+
+        public static void BroadcastGroup(List<WebSocket> webSocketGroup, byte[] data)
+        {
             lock (webSocketGroup)
             {
                 List<WebSocket> closedWebSockets = [];
